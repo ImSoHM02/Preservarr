@@ -1,12 +1,16 @@
-# Build stage with shared dependencies
-FROM node:22-alpine@sha256:4d64b49e6c891c8fc821007cb1cdc6c0db7773110ac2c34bf2e6960adef62ed3 AS base
+# Build stage — install all deps and compile native modules
+FROM node:22-alpine AS base
 
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm ci
+# Build tools required by better-sqlite3 (native module)
+RUN apk add --no-cache python3 make g++
 
-# Build stage
+COPY package*.json ./
+# Disable Corepack enforcement so the image npm version is used as-is
+RUN COREPACK_ENABLE_STRICT=0 npm ci
+
+# Builder stage — compile TypeScript + Vite
 FROM base AS builder
 
 WORKDIR /app
@@ -14,47 +18,41 @@ WORKDIR /app
 COPY --from=base /app/node_modules ./node_modules
 COPY . .
 
-# Build client and server
 RUN npm run build
 
-# Production stage
-FROM node:22-alpine@sha256:4d64b49e6c891c8fc821007cb1cdc6c0db7773110ac2c34bf2e6960adef62ed3 AS production
+# Production stage — lean image with only what's needed to run
+FROM node:22-alpine AS production
 
 WORKDIR /app
 
-# Set default environment variables
 ENV SQLITE_DB_PATH=/app/data/sqlite.db
 ENV NODE_ENV=production
 ENV PORT=5000
 ENV PUID=1000
 ENV PGID=1000
 
-# Install su-exec (for privilege dropping) and shadow (for usermod/groupmod)
-RUN apk add --no-cache su-exec shadow
+# Build tools needed to compile better-sqlite3 during prod npm ci,
+# then removed to keep the image small
+RUN apk add --no-cache python3 make g++ su-exec shadow
 
-# Install production dependencies only
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN COREPACK_ENABLE_STRICT=0 npm ci --omit=dev && \
+    apk del python3 make g++
 
-# Copy necessary files from build stage
+# Copy build output and migration files
 COPY --from=builder /app/dist ./dist
-
-# Copy drizzle configuration and migrations for production
 COPY --from=builder /app/drizzle.config.ts ./
 COPY --from=builder /app/migrations ./migrations
 COPY --from=builder /app/shared ./shared
 COPY --from=builder /app/scripts ./scripts
-
-# Copy configuration files...
 COPY --from=builder /app/package.json ./
 
-# Create user, group, data directory, and set ownership
+# Create user/group and data directory
 RUN addgroup preservarr && \
     adduser -G preservarr -s /bin/sh -D preservarr && \
     mkdir -p /app/data && \
     chown -R preservarr:preservarr /app
 
-# Copy and set up entrypoint script
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
