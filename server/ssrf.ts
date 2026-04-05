@@ -172,19 +172,16 @@ export async function safeFetch(
 ): Promise<Response> {
   const url = new URL(urlStr);
   const hostname = url.hostname;
-  const isHttps = url.protocol === "https:";
   const { allowPrivate, ...fetchOptions } = options;
 
   // If hostname is already an IP, just validate it
   const ipVersion = isIP(hostname);
   let address = hostname;
-  let family = ipVersion;
 
   if (ipVersion === 0) {
     try {
       const lookup = await dns.lookup(hostname);
       address = lookup.address;
-      family = lookup.family;
     } catch {
       throw new Error(`Failed to resolve hostname: ${hostname}`);
     }
@@ -194,32 +191,11 @@ export async function safeFetch(
     throw new Error("Invalid or unsafe URL");
   }
 
-  // For HTTPS, we cannot rewrite the URL to use the IP address because
-  // SSL/TLS certificates are issued for hostnames, not IP addresses.
-  // The certificate validation would fail with a hostname mismatch error.
-  // Instead, we've already validated the resolved IP is safe above,
-  // and we proceed with the original URL.
-  if (isHttps) {
-    try {
-      return await fetch(urlStr, fetchOptions);
-    } catch (error) {
-      throw new Error(formatFetchError(urlStr, error), { cause: error });
-    }
-  }
-
-  // For HTTP, rewrite URL to use IP address to prevent DNS rebinding
-  const safeUrl = new URL(urlStr);
-  safeUrl.hostname = family === 6 ? `[${address}]` : address;
-
-  // Clone headers and set Host to original hostname
-  const headers = new Headers(fetchOptions.headers || {});
-  headers.set("Host", hostname);
-
+  // After validating the resolved IP is safe, use the original URL directly.
+  // Rewriting to the IP breaks services like qBittorrent that validate the
+  // Host header or connection source against the actual request URL.
   try {
-    return await fetch(safeUrl.toString(), {
-      ...fetchOptions,
-      headers,
-    });
+    return await fetch(urlStr, fetchOptions);
   } catch (error) {
     throw new Error(formatFetchError(urlStr, error), { cause: error });
   }
