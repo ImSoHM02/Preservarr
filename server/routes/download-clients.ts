@@ -86,9 +86,9 @@ router.patch("/:id", async (req, res) => {
     const { name, type, url, username, password, downloadPath, platformPaths, enabled } =
       req.body;
 
-    // Don't overwrite the stored password if the masked placeholder is sent back
+    // Don't overwrite the stored password if the masked placeholder or empty string is sent back
     const resolvedPassword =
-      password === "••••••••" ? existing.password : (password ?? existing.password);
+      !password || password === "••••••••" ? existing.password : password;
 
     const updated = await storage.updateDownloadClient(id, {
       ...(name !== undefined && { name }),
