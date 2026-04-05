@@ -743,10 +743,40 @@ Only `preservarr-plan.md` retains Questarr references (intentional — documents
 
 ---
 
-### What's Next — Phase 2
+### Completed — 2026-04-05: No-Intro / Redump DAT File Import
 
-1. **No-Intro DAT file import UI** — upload DAT per platform → parse XML → bulk-insert `dat_entries` → re-hash existing `game_files`. This unlocks version badges on game cards.
-2. **titledb sync for Switch** — fetch and cache `US.en.json`, cross-reference by Title ID, flag `version_status = 'outdated'`, optionally auto-add update to `wanted_games`.
-3. **Version check service** — scheduled daily job that re-checks all files against their platform's version source (titledb / No-Intro / Redump), fires notifications, optionally triggers auto-upgrade.
-4. **ScreenScraper integration** — richer emulation-specific art (wheel art, snap video, regional box art) sourced by hash match.
-5. **Notification support** — Discord webhook, Telegram, Apprise on import / update-available / download-failed.
+**DAT file parser** (`server/dat-parser.ts`):
+- Parses No-Intro and Redump DAT files (CLRMAMEPro XML format) using `fast-xml-parser`
+- Extracts game title, region (from parenthesised tags like `(USA)`, `(Europe)`), revision (from `(Rev X)` tags), and CRC32/MD5/SHA1 hashes from `<game>`/`<machine>` → `<rom>` elements
+- Supports multi-ROM games (multi-disc) and both `<game>` and `<machine>` root elements (MAME-derived DATs)
+
+**Version sources API** (`server/routes/version-sources.ts`):
+- `GET /api/version-sources` — list all imported DATs with platform info
+- `GET /api/version-sources/platforms` — list platforms eligible for DAT import (those with `versionSource` of `no-intro` or `redump`)
+- `POST /api/version-sources/upload` — accepts `{ platformId, content, filename }` as JSON; parses DAT XML, creates/updates the `version_sources` record, bulk-inserts `dat_entries`, then re-matches all existing `game_files` for that platform against the new entries. Returns entry count and match results.
+- `POST /api/version-sources/:id/rematch` — re-check all library files for the platform against the DAT (useful after scanning new files)
+- `DELETE /api/version-sources/:id` — removes the DAT and resets `versionStatus` to `unknown` on all affected game files
+- JSON body limit increased to 50 MB in Express config to support large DAT files
+
+**Storage methods added** (`server/storage.ts`):
+- `getVersionSource(id)`, `deleteVersionSource(id)`, `getDatEntryCount(versionSourceId)`, `getGameFilesForPlatform(platformId)`
+
+**Version Sources UI page** (`client/src/pages/version-sources.tsx`):
+- Step-by-step instructions explaining how to download DAT files from datomatic.no-intro.org (No-Intro) and redump.org/downloads (Redump), with external links
+- Platform selector dropdown (filtered to no-intro/redump platforms only), file upload button (.dat/.xml)
+- Import result banner showing entries parsed and library files matched
+- List of all imported DATs showing platform name, source type badge, entry count, filename, import date
+- Per-DAT actions: "Re-match" (re-check library files) and "Remove" (delete DAT and reset version status)
+- Added to sidebar under Management as "Version Sources" with `FileCheck` icon
+- Route `/version-sources` registered in `App.tsx`
+
+**Integration with existing scanner**: the scanner (`server/scanner.ts`) already calls `storage.getDatEntriesByHash()` during file import — CRC32 on initial scan, SHA1 in the background hash job. Importing a DAT immediately enables version matching for future scans; the upload endpoint also re-matches all existing files.
+
+---
+
+### What's Next — Phase 2 (remaining)
+
+1. **titledb sync for Switch** — fetch and cache `US.en.json`, cross-reference by Title ID, flag `version_status = 'outdated'`, optionally auto-add update to `wanted_games`.
+2. **Version check service** — scheduled daily job that re-checks all files against their platform's version source (titledb / No-Intro / Redump), fires notifications, optionally triggers auto-upgrade.
+3. **ScreenScraper integration** — richer emulation-specific art (wheel art, snap video, regional box art) sourced by hash match.
+4. **Notification support** — Discord webhook, Telegram, Apprise on import / update-available / download-failed.

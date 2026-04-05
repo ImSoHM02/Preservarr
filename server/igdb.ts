@@ -101,8 +101,8 @@ class IGDBClient {
     clientId: string | undefined;
     clientSecret: string | undefined;
   }> {
-    const dbClientId = await storage.getSystemConfig("igdb.clientId");
-    const dbClientSecret = await storage.getSystemConfig("igdb.clientSecret");
+    const dbClientId = await storage.getSystemConfig("igdb_client_id");
+    const dbClientSecret = await storage.getSystemConfig("igdb_client_secret");
 
     if (dbClientId && dbClientSecret) {
       return { clientId: dbClientId, clientSecret: dbClientSecret };
