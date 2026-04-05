@@ -165,7 +165,8 @@ class IGDBClient {
     );
 
     if (!response.ok) {
-      throw new Error(`IGDB authentication failed: ${response.status}`);
+      const body = await response.text().catch(() => "");
+      throw new Error(`IGDB authentication failed: ${response.status} ${body}`);
     }
 
     const data: IGDBAuthResponse = await response.json();
@@ -197,7 +198,9 @@ class IGDBClient {
     });
 
     if (!response.ok) {
-      throw new Error(`IGDB API error: ${response.status}`);
+      const body = await response.text().catch(() => "");
+      igdbLogger.error({ status: response.status, body, endpoint }, `IGDB API request failed`);
+      throw new Error(`IGDB API error: ${response.status} ${body}`);
     }
 
     const data = await response.json();
@@ -298,9 +301,9 @@ class IGDBClient {
           );
           return results;
         }
-      } catch {
+      } catch (error) {
         igdbLogger.warn(
-          { approach: i + 1, query: sanitizedQuery },
+          { approach: i + 1, query: sanitizedQuery, err: error instanceof Error ? error.message : String(error) },
           `search approach ${i + 1} failed`
         );
       }
@@ -338,7 +341,7 @@ class IGDBClient {
           // Cache word search results for 15 minutes
           return await this.makeRequest<IGDBGame[]>("games", wordQuery, 15 * 60 * 1000);
         } catch (error) {
-          igdbLogger.warn({ word, error }, `word search failed`);
+          igdbLogger.warn({ word, err: error instanceof Error ? error.message : String(error) }, `word search failed`);
           return [];
         }
       });
