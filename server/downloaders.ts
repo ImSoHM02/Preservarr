@@ -2786,11 +2786,14 @@ export class QBittorrentClient implements DownloaderClient {
     formData.append("password", this.downloader.password);
 
     try {
+      const baseUrl = this.getBaseUrl();
       const response = await safeFetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
           "User-Agent": "Preservarr/1.0",
+          Referer: baseUrl,
+          Origin: baseUrl,
         },
         body: formData.toString(),
         signal: AbortSignal.timeout(30000),
@@ -2915,8 +2918,11 @@ export class QBittorrentClient implements DownloaderClient {
       requestBody = typeof body === "string" ? body : new Uint8Array(body);
     }
 
+    const baseUrl = this.getBaseUrl();
     const headers: Record<string, string> = {
       "User-Agent": "Preservarr/1.0",
+      Referer: baseUrl,
+      Origin: baseUrl,
       ...additionalHeaders,
     };
 
