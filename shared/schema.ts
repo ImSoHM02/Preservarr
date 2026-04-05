@@ -263,6 +263,10 @@ export const downloadHistory = sqliteTable(
     sizeBytes: integer("size_bytes"),
     seeders: integer("seeders"),
     score: integer("score"),
+    downloadClientId: integer("download_client_id").references(
+      () => downloadClients.id,
+    ),
+    externalId: text("external_id"),
     startedAt: text("started_at")
       .notNull()
       .default(sql`(datetime('now'))`),

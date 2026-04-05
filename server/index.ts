@@ -158,6 +158,10 @@ app.use((req, res, next) => {
     const { startWatcher } = await import("./scanner.js");
     await startWatcher().catch((err) => log("Watcher start failed: " + String(err)));
 
+    // Start import poller — detects completed downloads and moves files to library
+    const { startImportPoller } = await import("./importer.js");
+    startImportPoller();
+
     log("Preservarr server initialized");
   } catch (error) {
     log("Fatal error during startup:");

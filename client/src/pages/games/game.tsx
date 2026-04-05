@@ -16,6 +16,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   ArrowLeft,
   Gamepad2,
   HardDrive,
@@ -107,6 +114,13 @@ function scoreBadgeColor(score: number) {
   return "bg-red-500/10 text-red-400 border-red-500/20";
 }
 
+type DownloadClient = {
+  id: number;
+  name: string;
+  type: string;
+  enabled: boolean;
+};
+
 // ─── Search Results Dialog ────────────────────────────────────
 
 function SearchResultsDialog({
@@ -127,10 +141,25 @@ function SearchResultsDialog({
   searchErrors: string[];
 }) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [manualQuery, setManualQuery] = useState("");
   const [showAll, setShowAll] = useState(false);
   const [results, setResults] = useState(initialResults);
   const [stage, setStage] = useState(stageUsed);
+  const [selectedClientId, setSelectedClientId] = useState<string>("");
+  const [sendingLink, setSendingLink] = useState<string | null>(null);
+
+  const { data: clients = [] } = useQuery<DownloadClient[]>({
+    queryKey: ["/api/download-clients"],
+    enabled: open,
+  });
+
+  const enabledClients = clients.filter((c) => c.enabled);
+
+  // Auto-select the only client when there's exactly one
+  const effectiveClientId =
+    selectedClientId ||
+    (enabledClients.length === 1 ? String(enabledClients[0].id) : "");
 
   const researchMutation = useMutation({
     mutationFn: (query: string) =>
@@ -144,6 +173,37 @@ function SearchResultsDialog({
     onError: () => toast({ title: "Search failed", variant: "destructive" }),
   });
 
+  const handleSendToClient = async (result: SearchResult) => {
+    if (!effectiveClientId) {
+      toast({ title: "Select a download client first", variant: "destructive" });
+      return;
+    }
+    setSendingLink(result.link);
+    try {
+      const resp = await apiRequest("POST", `/api/download-clients/${effectiveClientId}/add`, {
+        url: result.link,
+        title: result.title,
+        gameId,
+        indexerId: result.indexerId,
+        sizeBytes: result.size,
+        seeders: result.seeders,
+        score: result.score,
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ error: "Unknown error" }));
+        throw new Error(err.error ?? "Failed");
+      }
+      toast({ title: "Sent to download client" });
+      queryClient.invalidateQueries({ queryKey: [`/api/games/${gameId}`] });
+      onClose();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to send";
+      toast({ title: msg, variant: "destructive" });
+    } finally {
+      setSendingLink(null);
+    }
+  };
+
   const displayed = showAll ? results : results.filter((r) => r.score >= 30);
   const hiddenCount = results.length - displayed.length;
 
@@ -154,13 +214,14 @@ function SearchResultsDialog({
           <DialogTitle>Search Results — {gameTitle}</DialogTitle>
         </DialogHeader>
 
-        {/* Manual override */}
+        {/* Manual override + client picker row */}
         <div className="flex gap-2">
           <Input
             placeholder="Override query..."
             value={manualQuery}
             onChange={(e) => setManualQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && researchMutation.mutate(manualQuery)}
+            className="flex-1"
           />
           <Button
             variant="outline"
@@ -171,6 +232,31 @@ function SearchResultsDialog({
             <Search className="h-4 w-4" />
           </Button>
         </div>
+
+        {/* Client selector — only shown when multiple clients exist */}
+        {enabledClients.length > 1 && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground shrink-0">Send to:</span>
+            <Select value={effectiveClientId} onValueChange={setSelectedClientId}>
+              <SelectTrigger className="h-8 text-xs flex-1">
+                <SelectValue placeholder="Select client..." />
+              </SelectTrigger>
+              <SelectContent>
+                {enabledClients.map((c) => (
+                  <SelectItem key={c.id} value={String(c.id)} className="text-xs">
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {enabledClients.length === 0 && (
+          <p className="text-xs text-amber-500">
+            No download clients configured. Add one in Downloaders settings.
+          </p>
+        )}
 
         {stage && (
           <p className="text-xs text-muted-foreground">
@@ -213,13 +299,11 @@ function SearchResultsDialog({
                 </Badge>
                 <Button
                   size="sm"
-                  variant="ghost"
+                  variant={effectiveClientId ? "default" : "ghost"}
                   className="h-7 px-2"
-                  onClick={() => {
-                    // Copy download link — actual send-to-client TBD in Phase 2
-                    navigator.clipboard.writeText(r.link);
-                    toast({ title: "Link copied to clipboard" });
-                  }}
+                  disabled={sendingLink === r.link}
+                  onClick={() => handleSendToClient(r)}
+                  title={effectiveClientId ? "Send to download client" : "No client selected"}
                 >
                   <Download className="h-3.5 w-3.5" />
                 </Button>

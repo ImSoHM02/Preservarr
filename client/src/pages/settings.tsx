@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Folder, Plus, Trash2, RefreshCw, Settings2, Key } from "lucide-react";
+import { Folder, Plus, Trash2, RefreshCw, Settings2, Key, CheckCircle2, XCircle } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────
 
@@ -64,6 +64,16 @@ export default function SettingsPage() {
   const { data: settings = {} } = useQuery<Record<string, string>>({
     queryKey: ["settings"],
     queryFn: () => apiRequest("GET", "/api/settings").then((r) => r.json()),
+  });
+
+  const { data: igdbStatus, refetch: recheckIgdb } = useQuery<{
+    configured: boolean;
+    working: boolean;
+  }>({
+    queryKey: ["igdb-status"],
+    queryFn: () => apiRequest("GET", "/api/igdb/status").then((r) => r.json()),
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 
   // ── Library paths state ──
@@ -118,9 +128,13 @@ export default function SettingsPage() {
   const saveSettingsMutation = useMutation({
     mutationFn: (data: Record<string, string>) =>
       apiRequest("PUT", "/api/settings", data).then((r) => r.json()),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["settings"] });
       toast({ title: "Settings saved" });
+      // Re-check IGDB connection if IGDB credentials were saved
+      if ("igdb_client_id" in variables || "igdb_client_secret" in variables) {
+        setTimeout(() => recheckIgdb(), 500);
+      }
     },
     onError: () => toast({ title: "Failed to save settings", variant: "destructive" }),
   });
@@ -282,6 +296,17 @@ export default function SettingsPage() {
           <CardTitle className="flex items-center gap-2">
             <Key className="h-5 w-5" />
             IGDB API
+            {igdbStatus?.working ? (
+              <Badge className="bg-green-500/10 text-green-500 border-green-500/20 font-normal ml-1">
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+                Connected
+              </Badge>
+            ) : igdbStatus && !igdbStatus.working ? (
+              <Badge className="bg-red-500/10 text-red-400 border-red-500/20 font-normal ml-1">
+                <XCircle className="h-3 w-3 mr-1" />
+                Not configured
+              </Badge>
+            ) : null}
           </CardTitle>
           <CardDescription>
             Required for game metadata and cover art. Get credentials from the{" "}

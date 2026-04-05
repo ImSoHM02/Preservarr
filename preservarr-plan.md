@@ -695,14 +695,40 @@ Only `preservarr-plan.md` retains Questarr references (intentional — documents
 
 ---
 
-### What's Next
+---
 
-Phase 1 is now functionally complete. The remaining work before Phase 2 begins:
+### Completed — 2026-04-05: Send-to-Client, Import Pipeline, IGDB Status Badge
 
-1. **Send-to-client from search results** — the Search results dialog currently copies the torrent/NZB link to clipboard. Wire it up properly: `POST /api/download-clients/:id/add` route that calls `DownloaderManager.addDownload()`, then creates a `download_history` entry and marks the wanted game as `downloading`. Button in the results dialog should show a client picker if multiple clients are configured.
+**Phase 1 is now complete.**
 
-2. **Import pipeline** — after a download completes, move/rename the file into the configured library path using the platform's naming standard, then re-scan that path to pick up the new `game_files` record and mark `wanted_games.status = 'owned'`. Requires polling the download client for completion status (can piggyback on the existing 10 s queue refresh).
+**Schema & migration** (`migrations/0002_download_client_tracking.sql`):
+- Added `download_client_id` and `external_id` columns to `download_history` — enables the import poller to track which client holds a given download and query it by ID.
 
-3. **Settings page — IGDB status indicator** — show a green/red badge confirming whether the stored IGDB credentials are working (call `GET /api/igdb/status`).
+**Send-to-client** (`server/routes/download-clients.ts`):
+- `POST /api/download-clients/:id/add` — takes `{ url, title, gameId, indexerId?, sizeBytes?, seeders?, score? }`, calls `DownloaderManager.addDownload()`, creates a `download_history` entry with `downloadClientId` and `externalId`, marks `wanted_games.status = 'downloading'`.
 
-4. **Phase 2 starting point** — No-Intro DAT file import UI (upload DAT per platform → parse → bulk-insert `dat_entries` → re-hash existing `game_files` against new entries). This unlocks version badges on game cards and the "update available" flow.
+**Import pipeline** (`server/importer.ts`):
+- `pollImports()` — runs every 30 s; queries all `download_history` entries with `status = 'downloading'` and an `externalId`; detects completion via `progress >= 100` or known-complete status strings (seeding, pausedUP, etc.); finds the ROM file via `findRomFile()` (tries direct file, sub-folder, then dir scan); moves to the platform's library path if different from the download dir; marks history as `imported` and `wanted_games.status = 'owned'`. The chokidar watcher picks up the moved file automatically.
+- Started automatically on server boot from `server/index.ts`.
+
+**Search results dialog** (`client/src/pages/games/game.tsx`):
+- Download button now sends to the selected client via `POST /api/download-clients/:id/add` — closes dialog and invalidates game query on success.
+- Auto-selects the only client when exactly one is configured.
+- Shows a `Select` picker when multiple clients are enabled.
+- Shows a warning when no clients are configured.
+
+**IGDB status badge** (`client/src/pages/settings.tsx`):
+- Green "Connected" / red "Not configured" badge in the IGDB API card title, driven by `GET /api/igdb/status`.
+- Re-checks automatically after saving IGDB credentials.
+
+**Type-checks clean:** zero TypeScript errors, Vite build succeeds.
+
+---
+
+### What's Next — Phase 2
+
+1. **No-Intro DAT file import UI** — upload DAT per platform → parse XML → bulk-insert `dat_entries` → re-hash existing `game_files`. This unlocks version badges on game cards.
+2. **titledb sync for Switch** — fetch and cache `US.en.json`, cross-reference by Title ID, flag `version_status = 'outdated'`, optionally auto-add update to `wanted_games`.
+3. **Version check service** — scheduled daily job that re-checks all files against their platform's version source (titledb / No-Intro / Redump), fires notifications, optionally triggers auto-upgrade.
+4. **ScreenScraper integration** — richer emulation-specific art (wheel art, snap video, regional box art) sourced by hash match.
+5. **Notification support** — Discord webhook, Telegram, Apprise on import / update-available / download-failed.

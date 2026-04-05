@@ -141,6 +141,54 @@ router.get("/:id/queue", async (req, res) => {
   }
 });
 
+// POST /api/download-clients/:id/add — send a torrent/NZB to a specific client
+router.post("/:id/add", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+    const client = await storage.getDownloadClient(id);
+    if (!client) return res.status(404).json({ error: "Download client not found" });
+    if (!client.enabled) return res.status(400).json({ error: "Download client is disabled" });
+
+    const { url, title, gameId, indexerId, sizeBytes, seeders, score } = req.body;
+    if (!url || !title || !gameId) {
+      return res.status(400).json({ error: "url, title, and gameId are required" });
+    }
+
+    const result = await DownloaderManager.addDownload(client, {
+      url,
+      title,
+      downloadType: url.startsWith("magnet:") || url.endsWith(".torrent") ? "torrent" : "usenet",
+      downloadPath: client.downloadPath ?? undefined,
+    });
+
+    if (!result.success) {
+      return res.status(502).json({ error: result.message });
+    }
+
+    // Record in download history
+    await storage.createDownloadHistoryEntry({
+      gameId: parseInt(gameId),
+      indexerId: indexerId ? parseInt(indexerId) : null,
+      releaseTitle: title,
+      sizeBytes: sizeBytes ?? null,
+      seeders: seeders ?? null,
+      score: score ?? null,
+      downloadClientId: id,
+      externalId: result.id ?? null,
+      status: "downloading",
+    });
+
+    // Mark wanted game as downloading
+    await storage.updateWantedGameStatus(parseInt(gameId), "downloading");
+
+    res.json({ success: true, externalId: result.id });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    res.status(500).json({ error: message });
+  }
+});
+
 // GET /api/download-clients/queue/all — aggregate queue across all enabled clients
 router.get("/queue/all", async (_req, res) => {
   try {

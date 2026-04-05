@@ -437,6 +437,18 @@ class Storage {
       .get();
   }
 
+  async getActiveDownloadHistory(): Promise<DownloadHistoryEntry[]> {
+    return db
+      .select()
+      .from(downloadHistory)
+      .where(
+        and(
+          eq(downloadHistory.status, "downloading"),
+        ),
+      )
+      .all();
+  }
+
   // ── Search History ────────────────────────
 
   async createSearchHistoryEntry(
