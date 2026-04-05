@@ -8,7 +8,7 @@ RUN apk add --no-cache python3 make g++
 
 COPY package*.json ./
 # Disable Corepack enforcement so the image npm version is used as-is
-RUN COREPACK_ENABLE_STRICT=0 npm ci
+RUN COREPACK_ENABLE_STRICT=0 npm ci --omit=optional
 
 # Builder stage — compile TypeScript + Vite
 FROM base AS builder
@@ -36,7 +36,7 @@ ENV PGID=1000
 RUN apk add --no-cache python3 make g++ su-exec shadow
 
 COPY package*.json ./
-RUN COREPACK_ENABLE_STRICT=0 npm ci --omit=dev && \
+RUN COREPACK_ENABLE_STRICT=0 npm ci --omit=dev --omit=optional && \
     apk del python3 make g++
 
 # Copy build output and migration files
