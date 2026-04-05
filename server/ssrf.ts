@@ -200,7 +200,11 @@ export async function safeFetch(
   // Instead, we've already validated the resolved IP is safe above,
   // and we proceed with the original URL.
   if (isHttps) {
-    return fetch(urlStr, fetchOptions);
+    try {
+      return await fetch(urlStr, fetchOptions);
+    } catch (error) {
+      throw new Error(formatFetchError(urlStr, error), { cause: error });
+    }
   }
 
   // For HTTP, rewrite URL to use IP address to prevent DNS rebinding
@@ -211,8 +215,39 @@ export async function safeFetch(
   const headers = new Headers(fetchOptions.headers || {});
   headers.set("Host", hostname);
 
-  return fetch(safeUrl.toString(), {
-    ...fetchOptions,
-    headers,
-  });
+  try {
+    return await fetch(safeUrl.toString(), {
+      ...fetchOptions,
+      headers,
+    });
+  } catch (error) {
+    throw new Error(formatFetchError(urlStr, error), { cause: error });
+  }
+}
+
+function formatFetchError(urlStr: string, error: unknown): string {
+  const asError = error instanceof Error ? error : new Error(String(error));
+  const cause = asError.cause as
+    | {
+        code?: string;
+        errno?: number;
+        syscall?: string;
+        address?: string;
+        port?: number;
+      }
+    | undefined;
+
+  if (!cause) {
+    return `Network request failed for ${urlStr}: ${asError.message}`;
+  }
+
+  const parts: string[] = [];
+  if (cause.code) parts.push(`code=${cause.code}`);
+  if (cause.errno !== undefined) parts.push(`errno=${cause.errno}`);
+  if (cause.syscall) parts.push(`syscall=${cause.syscall}`);
+  if (cause.address) parts.push(`address=${cause.address}`);
+  if (cause.port !== undefined) parts.push(`port=${cause.port}`);
+
+  const detail = parts.length > 0 ? ` (${parts.join(", ")})` : "";
+  return `Network request failed for ${urlStr}: ${asError.message}${detail}`;
 }

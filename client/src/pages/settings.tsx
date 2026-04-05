@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { getApiErrorDescription, getApiErrorMessage } from "@/lib/api-errors";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -87,7 +88,12 @@ export default function SettingsPage() {
       queryClient.invalidateQueries({ queryKey: ["library-paths"] });
       toast({ title: "Library paths saved" });
     },
-    onError: () => toast({ title: "Failed to save paths", variant: "destructive" }),
+    onError: (error) =>
+      toast({
+        title: getApiErrorMessage(error, "Failed to save paths"),
+        description: getApiErrorDescription(error),
+        variant: "destructive",
+      }),
   });
 
   const scanMutation = useMutation({
@@ -96,7 +102,12 @@ export default function SettingsPage() {
       queryClient.invalidateQueries({ queryKey: ["scan-status"] });
       toast({ title: "Library scan started" });
     },
-    onError: () => toast({ title: "Scan failed to start", variant: "destructive" }),
+    onError: (error) =>
+      toast({
+        title: getApiErrorMessage(error, "Scan failed to start"),
+        description: getApiErrorDescription(error),
+        variant: "destructive",
+      }),
   });
 
   const handleAddPath = () => {
@@ -136,7 +147,12 @@ export default function SettingsPage() {
         setTimeout(() => recheckIgdb(), 500);
       }
     },
-    onError: () => toast({ title: "Failed to save settings", variant: "destructive" }),
+    onError: (error) =>
+      toast({
+        title: getApiErrorMessage(error, "Failed to save settings"),
+        description: getApiErrorDescription(error),
+        variant: "destructive",
+      }),
   });
 
   const handleSaveIgdb = () => {
@@ -388,6 +404,20 @@ export default function SettingsPage() {
             size="sm"
           >
             Save Prowlarr Settings
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Diagnostics</CardTitle>
+          <CardDescription>
+            Open detailed application logs for request traces, connection tests, and stack errors.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button asChild variant="outline" size="sm">
+            <a href="/logs">Open Logs</a>
           </Button>
         </CardContent>
       </Card>

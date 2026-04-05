@@ -3,6 +3,7 @@ import { authenticateToken } from "../auth.js";
 import { storage } from "../storage.js";
 import { runFullScan, getScanProgress, startWatcher, stopWatcher } from "../scanner.js";
 import { type LibraryPaths } from "../scanner.js";
+import { sendRouteError } from "../errors.js";
 
 const router = Router();
 router.use(authenticateToken);
@@ -13,8 +14,11 @@ router.get("/paths", async (_req, res) => {
     const raw = await storage.getSetting("library_paths");
     const paths: LibraryPaths = raw ? JSON.parse(raw) : {};
     res.json(paths);
-  } catch {
-    res.status(500).json({ error: "Failed to fetch library paths" });
+  } catch (error) {
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to fetch library paths",
+      route: "GET /api/library/paths",
+    });
   }
 });
 
@@ -37,8 +41,11 @@ router.put("/paths", async (req, res) => {
     await stopWatcher();
     await startWatcher();
     res.json(paths);
-  } catch {
-    res.status(500).json({ error: "Failed to update library paths" });
+  } catch (error) {
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to update library paths",
+      route: "PUT /api/library/paths",
+    });
   }
 });
 
@@ -74,8 +81,12 @@ router.delete("/paths/:slug", async (req, res) => {
     await stopWatcher();
     await startWatcher();
     res.json(paths);
-  } catch {
-    res.status(500).json({ error: "Failed to remove path" });
+  } catch (error) {
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to remove path",
+      route: "DELETE /api/library/paths/:slug",
+      context: { slug: req.params.slug },
+    });
   }
 });
 

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { getApiErrorDescription, getApiErrorMessage } from "@/lib/api-errors";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -82,7 +83,12 @@ export default function IndexersPage() {
       setDialogOpen(false);
       setForm(defaultForm);
     },
-    onError: () => toast({ title: "Failed to add indexer", variant: "destructive" }),
+    onError: (error) =>
+      toast({
+        title: getApiErrorMessage(error, "Failed to add indexer"),
+        description: getApiErrorDescription(error),
+        variant: "destructive",
+      }),
   });
 
   const updateMutation = useMutation({
@@ -94,7 +100,12 @@ export default function IndexersPage() {
       setDialogOpen(false);
       setEditingId(null);
     },
-    onError: () => toast({ title: "Failed to update indexer", variant: "destructive" }),
+    onError: (error) =>
+      toast({
+        title: getApiErrorMessage(error, "Failed to update indexer"),
+        description: getApiErrorDescription(error),
+        variant: "destructive",
+      }),
   });
 
   const deleteMutation = useMutation({
@@ -104,7 +115,12 @@ export default function IndexersPage() {
       toast({ title: "Indexer deleted" });
       setDeleteId(null);
     },
-    onError: () => toast({ title: "Failed to delete indexer", variant: "destructive" }),
+    onError: (error) =>
+      toast({
+        title: getApiErrorMessage(error, "Failed to delete indexer"),
+        description: getApiErrorDescription(error),
+        variant: "destructive",
+      }),
   });
 
   const testMutation = useMutation({
@@ -113,8 +129,16 @@ export default function IndexersPage() {
     onSuccess: (data, id) => {
       setTestResults((prev) => ({ ...prev, [id]: data }));
     },
-    onError: (_err, id) => {
-      setTestResults((prev) => ({ ...prev, [id]: { success: false, message: "Connection failed" } }));
+    onError: (error, id) => {
+      const message = getApiErrorMessage(error, "Connection failed");
+      const description = getApiErrorDescription(error);
+      setTestResults((prev) => ({
+        ...prev,
+        [id]: {
+          success: false,
+          message: description ? `${message} (${description})` : message,
+        },
+      }));
     },
   });
 
@@ -125,8 +149,11 @@ export default function IndexersPage() {
       toast({ title: `Prowlarr sync: ${data.added} added, ${data.updated} updated` });
     },
     onError: (err) => {
-      const msg = err instanceof Error ? err.message : "Sync failed";
-      toast({ title: "Prowlarr sync failed", description: msg, variant: "destructive" });
+      toast({
+        title: getApiErrorMessage(err, "Prowlarr sync failed"),
+        description: getApiErrorDescription(err),
+        variant: "destructive",
+      });
     },
   });
 

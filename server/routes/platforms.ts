@@ -4,6 +4,7 @@ import { authenticateToken } from "../auth.js";
 import { db } from "../db.js";
 import { games, gameFiles, wantedGames } from "../../shared/schema.js";
 import { eq, sql, count } from "drizzle-orm";
+import { sendRouteError } from "../errors.js";
 
 const router = Router();
 router.use(authenticateToken);
@@ -32,7 +33,10 @@ router.get("/", async (_req, res) => {
 
     res.json(result);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch platforms" });
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to fetch platforms",
+      route: "GET /api/platforms",
+    });
   }
 });
 
@@ -53,7 +57,11 @@ router.get("/:slug", async (req, res) => {
 
     res.json({ ...platform, gameCount: result?.count ?? 0 });
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch platform" });
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to fetch platform",
+      route: "GET /api/platforms/:slug",
+      context: { slug: req.params.slug },
+    });
   }
 });
 
@@ -82,7 +90,11 @@ router.patch("/:id", async (req, res) => {
 
     res.json(updated);
   } catch (error) {
-    res.status(500).json({ error: "Failed to update platform" });
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to update platform",
+      route: "PATCH /api/platforms/:id",
+      context: { platformId: req.params.id },
+    });
   }
 });
 
@@ -120,7 +132,11 @@ router.get("/:slug/stats", async (req, res) => {
       wantedGames: wantedCount?.count ?? 0,
     });
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch platform stats" });
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to fetch platform stats",
+      route: "GET /api/platforms/:slug/stats",
+      context: { slug: req.params.slug },
+    });
   }
 });
 

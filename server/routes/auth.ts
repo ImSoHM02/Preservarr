@@ -6,6 +6,7 @@ import {
   generateToken,
   authenticateToken,
 } from "../auth.js";
+import { sendRouteError } from "../errors.js";
 
 const router = Router();
 
@@ -15,7 +16,10 @@ router.get("/status", async (_req, res) => {
     const count = await storage.countUsers();
     res.json({ hasUsers: count > 0 });
   } catch (error) {
-    res.status(500).json({ error: "Failed to check auth status" });
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to check auth status",
+      route: "GET /api/auth/status",
+    });
   }
 });
 
@@ -48,7 +52,10 @@ router.post("/setup", async (req, res) => {
     const token = await generateToken(user);
     res.json({ token, user: { id: user.id, username: user.username } });
   } catch (error) {
-    res.status(500).json({ error: "Failed to create user" });
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to create user",
+      route: "POST /api/auth/setup",
+    });
   }
 });
 
@@ -75,7 +82,10 @@ router.post("/login", async (req, res) => {
     const token = await generateToken(user);
     res.json({ token, user: { id: user.id, username: user.username } });
   } catch (error) {
-    res.status(500).json({ error: "Failed to login" });
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to login",
+      route: "POST /api/auth/login",
+    });
   }
 });
 

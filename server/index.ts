@@ -3,11 +3,13 @@ import express, { type Request, Response, NextFunction } from "express";
 import https from "https";
 import fs from "fs";
 import http from "http";
+import { randomUUID } from "crypto";
 
 import { setupVite, serveStatic, log } from "./vite.js";
 import { generalApiLimiter } from "./middleware.js";
 import { config } from "./config.js";
 import { expressLogger } from "./logger.js";
+import { summarizeError } from "./errors.js";
 import { setupSocketIO } from "./socket.js";
 import { ensureDatabase } from "./migrate.js";
 import authRoutes from "./routes/auth.js";
@@ -19,6 +21,31 @@ import qualityProfileRoutes from "./routes/quality-profiles.js";
 import libraryRoutes from "./routes/library.js";
 import indexerRoutes from "./routes/indexers.js";
 import downloadClientRoutes from "./routes/download-clients.js";
+import logsRoutes from "./routes/logs.js";
+
+process.on("unhandledRejection", (reason) => {
+  const summary = summarizeError(reason, "Unhandled promise rejection");
+  expressLogger.error(
+    {
+      error: summary.message,
+      code: summary.code,
+      details: summary.details,
+    },
+    "Unhandled promise rejection"
+  );
+});
+
+process.on("uncaughtException", (error) => {
+  const summary = summarizeError(error, "Uncaught exception");
+  expressLogger.fatal(
+    {
+      error: summary.message,
+      code: summary.code,
+      details: summary.details,
+    },
+    "Uncaught exception"
+  );
+});
 
 const app = express();
 app.use(express.json());
@@ -33,22 +60,34 @@ app.use((_req, res, next) => {
   next();
 });
 
+// Request IDs for tracing API failures
+app.use((_req, res, next) => {
+  const requestId = randomUUID();
+  res.locals.requestId = requestId;
+  res.setHeader("X-Request-Id", requestId);
+  next();
+});
+
 // Request logging
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
+  const requestId = res.locals.requestId;
 
   res.on("finish", () => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
       expressLogger.info(
         {
+          requestId,
           method: req.method,
           path,
           statusCode: res.statusCode,
           duration,
+          ip: req.ip,
+          userAgent: req.get("user-agent"),
         },
-        `${req.method} ${path} ${res.statusCode} in ${duration}ms`,
+        `API ${req.method} ${path} ${res.statusCode} in ${duration}ms`,
       );
     }
   });
@@ -79,21 +118,39 @@ app.use((req, res, next) => {
     app.use("/api/library", libraryRoutes);
     app.use("/api/indexers", indexerRoutes);
     app.use("/api/download-clients", downloadClientRoutes);
+    app.use("/api/logs", logsRoutes);
 
     // Error handler
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-      const status = err.status || err.statusCode || 500;
-      const error = err.message || "Internal Server Error";
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const response: { error: string; details?: any } = { error };
-      if (err.details) {
-        response.details = err.details;
+    app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
+      if (res.headersSent) {
+        return;
       }
 
-      res.status(status).json(response);
-      throw err;
+      const status = err.status || err.statusCode || 500;
+      const requestId = res.locals.requestId;
+      const summary = summarizeError(err, "Internal Server Error");
+
+      expressLogger.error(
+        {
+          requestId,
+          method: req.method,
+          path: req.path,
+          status,
+          error: summary.message,
+          code: summary.code,
+          details: summary.details,
+        },
+        "Unhandled API error"
+      );
+
+      res.status(status).json({
+        error: summary.message,
+        code: summary.code,
+        hint: summary.hint,
+        details: summary.details,
+        requestId,
+      });
     });
 
     // Setup Vite in dev, static serving in prod

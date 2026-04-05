@@ -48,7 +48,10 @@ export class ProwlarrClient {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch indexers from Prowlarr: ${response.statusText}`);
+        const errorBody = await response.text().catch(() => "No error details available");
+        throw new Error(
+          `Prowlarr API request failed (${response.status} ${response.statusText}) at ${apiUrl}: ${errorBody}`
+        );
       }
 
       const prowlarrIndexers = (await response.json()) as ProwlarrIndexer[];
@@ -106,7 +109,7 @@ export class ProwlarrClient {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       torznabLogger.error(
-        { error: errorMessage, url: prowlarrUrl },
+        { error: errorMessage, url: prowlarrUrl, apiUrl },
         "Failed to sync from Prowlarr"
       );
       throw error;

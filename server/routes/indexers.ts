@@ -3,6 +3,8 @@ import { authenticateToken } from "../auth.js";
 import { storage } from "../storage.js";
 import { prowlarrClient } from "../prowlarr.js";
 import { torznabClient } from "../torznab.js";
+import { sendRouteError } from "../errors.js";
+import { routesLogger } from "../logger.js";
 
 const router = Router();
 router.use(authenticateToken);
@@ -12,8 +14,11 @@ router.get("/", async (_req, res) => {
   try {
     const indexers = await storage.getIndexers();
     res.json(indexers);
-  } catch {
-    res.status(500).json({ error: "Failed to fetch indexers" });
+  } catch (error) {
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to fetch indexers",
+      route: "GET /api/indexers",
+    });
   }
 });
 
@@ -25,8 +30,12 @@ router.get("/:id", async (req, res) => {
     const indexer = await storage.getIndexer(id);
     if (!indexer) return res.status(404).json({ error: "Indexer not found" });
     res.json(indexer);
-  } catch {
-    res.status(500).json({ error: "Failed to fetch indexer" });
+  } catch (error) {
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to fetch indexer",
+      route: "GET /api/indexers/:id",
+      context: { indexerId: req.params.id },
+    });
   }
 });
 
@@ -47,8 +56,11 @@ router.post("/", async (req, res) => {
       categories: categories ?? [],
     });
     res.status(201).json(indexer);
-  } catch {
-    res.status(500).json({ error: "Failed to create indexer" });
+  } catch (error) {
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to create indexer",
+      route: "POST /api/indexers",
+    });
   }
 });
 
@@ -70,8 +82,12 @@ router.patch("/:id", async (req, res) => {
       ...(categories !== undefined && { categories }),
     });
     res.json(updated);
-  } catch {
-    res.status(500).json({ error: "Failed to update indexer" });
+  } catch (error) {
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to update indexer",
+      route: "PATCH /api/indexers/:id",
+      context: { indexerId: req.params.id },
+    });
   }
 });
 
@@ -84,8 +100,12 @@ router.delete("/:id", async (req, res) => {
     if (!indexer) return res.status(404).json({ error: "Indexer not found" });
     await storage.deleteIndexer(id);
     res.status(204).send();
-  } catch {
-    res.status(500).json({ error: "Failed to delete indexer" });
+  } catch (error) {
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to delete indexer",
+      route: "DELETE /api/indexers/:id",
+      context: { indexerId: req.params.id },
+    });
   }
 });
 
@@ -96,11 +116,39 @@ router.post("/:id/test", async (req, res) => {
     if (isNaN(id)) return res.status(400).json({ error: "Invalid indexer ID" });
     const indexer = await storage.getIndexer(id);
     if (!indexer) return res.status(404).json({ error: "Indexer not found" });
+    routesLogger.info(
+      {
+        requestId: res.locals.requestId,
+        indexerId: indexer.id,
+        indexerName: indexer.name,
+        indexerUrl: indexer.url,
+      },
+      "Testing indexer connection"
+    );
+
     const result = await torznabClient.testConnection(indexer);
+    if (!result.success) {
+      const lowerUrl = indexer.url.toLowerCase();
+      const hint =
+        lowerUrl.includes("localhost") || lowerUrl.includes("127.0.0.1")
+          ? "Indexer URL points to localhost. In Docker, localhost is the Preservarr container. Use the indexer container name or host.docker.internal."
+          : "Check indexer URL/API key, and verify Preservarr can reach the host from inside Docker.";
+      return res.status(502).json({
+        success: false,
+        message: result.message,
+        hint,
+        requestId: res.locals.requestId,
+      });
+    }
+
     res.json(result);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    res.status(502).json({ success: false, message });
+    sendRouteError(res, err, {
+      status: 502,
+      fallbackMessage: "Indexer connection test failed",
+      route: "POST /api/indexers/:id/test",
+      context: { indexerId: req.params.id },
+    });
   }
 });
 
@@ -155,8 +203,11 @@ router.post("/prowlarr/sync", async (_req, res) => {
       total: remoteIndexers.length,
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    res.status(502).json({ error: `Prowlarr sync failed: ${message}` });
+    sendRouteError(res, err, {
+      status: 502,
+      fallbackMessage: "Prowlarr sync failed",
+      route: "POST /api/indexers/prowlarr/sync",
+    });
   }
 });
 
@@ -178,8 +229,11 @@ router.post("/search/:gameId", async (req, res) => {
 
     res.json(result);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    res.status(500).json({ error: message });
+    sendRouteError(res, err, {
+      fallbackMessage: "Game search failed",
+      route: "POST /api/indexers/search/:gameId",
+      context: { gameId: req.params.gameId },
+    });
   }
 });
 

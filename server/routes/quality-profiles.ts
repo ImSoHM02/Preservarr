@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { storage } from "../storage.js";
 import { authenticateToken } from "../auth.js";
+import { sendRouteError } from "../errors.js";
 
 const router = Router();
 router.use(authenticateToken);
@@ -21,7 +22,10 @@ router.get("/", async (_req, res) => {
 
     res.json(enriched);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch quality profiles" });
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to fetch quality profiles",
+      route: "GET /api/quality-profiles",
+    });
   }
 });
 
@@ -37,7 +41,11 @@ router.get("/:id", async (req, res) => {
     const platform = await storage.getPlatform(profile.platformId);
     res.json({ ...profile, platform: platform ?? null });
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch quality profile" });
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to fetch quality profile",
+      route: "GET /api/quality-profiles/:id",
+      context: { profileId: req.params.id },
+    });
   }
 });
 
@@ -75,7 +83,10 @@ router.post("/", async (req, res) => {
 
     res.status(201).json(profile);
   } catch (error) {
-    res.status(500).json({ error: "Failed to create quality profile" });
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to create quality profile",
+      route: "POST /api/quality-profiles",
+    });
   }
 });
 
@@ -109,7 +120,11 @@ router.patch("/:id", async (req, res) => {
 
     res.json(updated);
   } catch (error) {
-    res.status(500).json({ error: "Failed to update quality profile" });
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to update quality profile",
+      route: "PATCH /api/quality-profiles/:id",
+      context: { profileId: req.params.id },
+    });
   }
 });
 
@@ -125,7 +140,11 @@ router.delete("/:id", async (req, res) => {
     await storage.deleteQualityProfile(id);
     res.status(204).send();
   } catch (error) {
-    res.status(500).json({ error: "Failed to delete quality profile" });
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to delete quality profile",
+      route: "DELETE /api/quality-profiles/:id",
+      context: { profileId: req.params.id },
+    });
   }
 });
 

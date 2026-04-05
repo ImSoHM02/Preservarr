@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { getApiErrorDescription, getApiErrorMessage } from "@/lib/api-errors";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -99,7 +100,12 @@ export default function DownloadersPage() {
       setDialogOpen(false);
       setForm(defaultForm);
     },
-    onError: () => toast({ title: "Failed to add client", variant: "destructive" }),
+    onError: (error) =>
+      toast({
+        title: getApiErrorMessage(error, "Failed to add client"),
+        description: getApiErrorDescription(error),
+        variant: "destructive",
+      }),
   });
 
   const updateMutation = useMutation({
@@ -111,7 +117,12 @@ export default function DownloadersPage() {
       setDialogOpen(false);
       setEditingId(null);
     },
-    onError: () => toast({ title: "Failed to update client", variant: "destructive" }),
+    onError: (error) =>
+      toast({
+        title: getApiErrorMessage(error, "Failed to update client"),
+        description: getApiErrorDescription(error),
+        variant: "destructive",
+      }),
   });
 
   const deleteMutation = useMutation({
@@ -121,18 +132,29 @@ export default function DownloadersPage() {
       toast({ title: "Download client deleted" });
       setDeleteId(null);
     },
-    onError: () => toast({ title: "Failed to delete client", variant: "destructive" }),
+    onError: (error) =>
+      toast({
+        title: getApiErrorMessage(error, "Failed to delete client"),
+        description: getApiErrorDescription(error),
+        variant: "destructive",
+      }),
   });
 
   const testMutation = useMutation({
     mutationFn: (id: number) =>
       apiRequest("POST", `/api/download-clients/${id}/test`).then((r) => r.json()),
     onSuccess: (data, id) => setTestResults((prev) => ({ ...prev, [id]: data })),
-    onError: (_err, id) =>
+    onError: (error, id) => {
+      const message = getApiErrorMessage(error, "Connection failed");
+      const description = getApiErrorDescription(error);
       setTestResults((prev) => ({
         ...prev,
-        [id]: { success: false, message: "Connection failed" },
-      })),
+        [id]: {
+          success: false,
+          message: description ? `${message} (${description})` : message,
+        },
+      }));
+    },
   });
 
   const toggleMutation = useMutation({

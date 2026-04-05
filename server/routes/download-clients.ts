@@ -2,6 +2,8 @@ import { Router } from "express";
 import { authenticateToken } from "../auth.js";
 import { storage } from "../storage.js";
 import { DownloaderManager } from "../downloaders.js";
+import { sendRouteError } from "../errors.js";
+import { routesLogger } from "../logger.js";
 
 const router = Router();
 router.use(authenticateToken);
@@ -13,8 +15,11 @@ router.get("/", async (_req, res) => {
     // Mask passwords in response
     const masked = clients.map((c) => ({ ...c, password: c.password ? "••••••••" : null }));
     res.json(masked);
-  } catch {
-    res.status(500).json({ error: "Failed to fetch download clients" });
+  } catch (error) {
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to fetch download clients",
+      route: "GET /api/download-clients",
+    });
   }
 });
 
@@ -26,8 +31,12 @@ router.get("/:id", async (req, res) => {
     const client = await storage.getDownloadClient(id);
     if (!client) return res.status(404).json({ error: "Download client not found" });
     res.json({ ...client, password: client.password ? "••••••••" : null });
-  } catch {
-    res.status(500).json({ error: "Failed to fetch download client" });
+  } catch (error) {
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to fetch download client",
+      route: "GET /api/download-clients/:id",
+      context: { clientId: req.params.id },
+    });
   }
 });
 
@@ -58,8 +67,11 @@ router.post("/", async (req, res) => {
     });
 
     res.status(201).json({ ...client, password: client.password ? "••••••••" : null });
-  } catch {
-    res.status(500).json({ error: "Failed to create download client" });
+  } catch (error) {
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to create download client",
+      route: "POST /api/download-clients",
+    });
   }
 });
 
@@ -90,8 +102,12 @@ router.patch("/:id", async (req, res) => {
     });
 
     res.json({ ...updated, password: updated?.password ? "••••••••" : null });
-  } catch {
-    res.status(500).json({ error: "Failed to update download client" });
+  } catch (error) {
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to update download client",
+      route: "PATCH /api/download-clients/:id",
+      context: { clientId: req.params.id },
+    });
   }
 });
 
@@ -104,8 +120,12 @@ router.delete("/:id", async (req, res) => {
     if (!existing) return res.status(404).json({ error: "Download client not found" });
     await storage.deleteDownloadClient(id);
     res.status(204).send();
-  } catch {
-    res.status(500).json({ error: "Failed to delete download client" });
+  } catch (error) {
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to delete download client",
+      route: "DELETE /api/download-clients/:id",
+      context: { clientId: req.params.id },
+    });
   }
 });
 
@@ -117,11 +137,40 @@ router.post("/:id/test", async (req, res) => {
     const client = await storage.getDownloadClient(id);
     if (!client) return res.status(404).json({ error: "Download client not found" });
 
+    routesLogger.info(
+      {
+        requestId: res.locals.requestId,
+        clientId: client.id,
+        clientType: client.type,
+        clientName: client.name,
+        clientUrl: client.url,
+      },
+      "Testing download client connection"
+    );
+
     const result = await DownloaderManager.testDownloader(client);
+    if (!result.success) {
+      const lowerUrl = client.url.toLowerCase();
+      const hint =
+        lowerUrl.includes("localhost") || lowerUrl.includes("127.0.0.1")
+          ? "Client URL points to localhost. In Docker, localhost is the Preservarr container. Use the downloader container name or host.docker.internal."
+          : "Check URL/port/credentials. If Preservarr runs in Docker, use container DNS name instead of localhost.";
+      return res.status(502).json({
+        success: false,
+        message: result.message,
+        hint,
+        requestId: res.locals.requestId,
+      });
+    }
+
     res.json(result);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    res.status(502).json({ success: false, message });
+    sendRouteError(res, err, {
+      status: 502,
+      fallbackMessage: "Download client connection test failed",
+      route: "POST /api/download-clients/:id/test",
+      context: { clientId: req.params.id },
+    });
   }
 });
 
@@ -136,8 +185,12 @@ router.get("/:id/queue", async (req, res) => {
     const queue = await DownloaderManager.getAllDownloads(client);
     res.json(queue);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    res.status(502).json({ error: message });
+    sendRouteError(res, err, {
+      status: 502,
+      fallbackMessage: "Failed to fetch client queue",
+      route: "GET /api/download-clients/:id/queue",
+      context: { clientId: req.params.id },
+    });
   }
 });
 
@@ -184,8 +237,11 @@ router.post("/:id/add", async (req, res) => {
 
     res.json({ success: true, externalId: result.id });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    res.status(500).json({ error: message });
+    sendRouteError(res, err, {
+      fallbackMessage: "Failed to add download to client",
+      route: "POST /api/download-clients/:id/add",
+      context: { clientId: req.params.id },
+    });
   }
 });
 
@@ -207,8 +263,11 @@ router.get("/queue/all", async (_req, res) => {
     );
 
     res.json(allDownloads);
-  } catch {
-    res.status(500).json({ error: "Failed to fetch download queue" });
+  } catch (error) {
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to fetch download queue",
+      route: "GET /api/download-clients/queue/all",
+    });
   }
 });
 

@@ -6,6 +6,7 @@ import {
   Database,
   HardDrive,
   SlidersHorizontal,
+  ScrollText,
   LogOut,
   User,
 } from "lucide-react";
@@ -62,6 +63,11 @@ const management = [
     title: "Settings",
     url: "/settings",
     icon: Settings,
+  },
+  {
+    title: "Logs",
+    url: "/logs",
+    icon: ScrollText,
   },
 ];
 

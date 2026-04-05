@@ -2,6 +2,7 @@ import { Router } from "express";
 import { authenticateToken } from "../auth.js";
 import { igdbClient, type IGDBGame } from "../igdb.js";
 import { storage } from "../storage.js";
+import { sendRouteError } from "../errors.js";
 
 const router = Router();
 router.use(authenticateToken);
@@ -34,7 +35,10 @@ router.get("/search", async (req, res) => {
 
     res.json(formatResults(results));
   } catch (error) {
-    res.status(500).json({ error: "Failed to search IGDB" });
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to search IGDB",
+      route: "GET /api/igdb/search",
+    });
   }
 });
 
@@ -87,7 +91,10 @@ router.post("/import", async (req, res) => {
 
     res.status(201).json(game);
   } catch (error) {
-    res.status(500).json({ error: "Failed to import game from IGDB" });
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to import game from IGDB",
+      route: "POST /api/igdb/import",
+    });
   }
 });
 
@@ -160,7 +167,10 @@ router.post("/import/batch", async (req, res) => {
 
     res.status(201).json(results);
   } catch (error) {
-    res.status(500).json({ error: "Failed to batch import games" });
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to batch import games",
+      route: "POST /api/igdb/import/batch",
+    });
   }
 });
 

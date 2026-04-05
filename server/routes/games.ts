@@ -4,6 +4,7 @@ import { authenticateToken } from "../auth.js";
 import { db } from "../db.js";
 import { games, gameFiles, wantedGames } from "../../shared/schema.js";
 import { eq, count, and } from "drizzle-orm";
+import { sendRouteError } from "../errors.js";
 
 const router = Router();
 router.use(authenticateToken);
@@ -68,7 +69,10 @@ router.get("/", async (req, res) => {
 
     res.json(enriched);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch games" });
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to fetch games",
+      route: "GET /api/games",
+    });
   }
 });
 
@@ -87,7 +91,11 @@ router.get("/:id", async (req, res) => {
 
     res.json({ ...game, files, wanted, platform });
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch game" });
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to fetch game",
+      route: "GET /api/games/:id",
+      context: { gameId: req.params.id },
+    });
   }
 });
 
@@ -128,7 +136,10 @@ router.post("/", async (req, res) => {
 
     res.status(201).json(game);
   } catch (error) {
-    res.status(500).json({ error: "Failed to create game" });
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to create game",
+      route: "POST /api/games",
+    });
   }
 });
 
@@ -144,7 +155,11 @@ router.patch("/:id", async (req, res) => {
     const game = await storage.updateGame(id, req.body);
     res.json(game);
   } catch (error) {
-    res.status(500).json({ error: "Failed to update game" });
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to update game",
+      route: "PATCH /api/games/:id",
+      context: { gameId: req.params.id },
+    });
   }
 });
 
@@ -172,7 +187,11 @@ router.post("/:id/wanted", async (req, res) => {
 
     res.status(201).json(wanted);
   } catch (error) {
-    res.status(500).json({ error: "Failed to add game to wanted list" });
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to add game to wanted list",
+      route: "POST /api/games/:id/wanted",
+      context: { gameId: req.params.id },
+    });
   }
 });
 
@@ -194,8 +213,11 @@ router.post("/:id/search", async (req, res) => {
 
     res.json(result);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    res.status(500).json({ error: message });
+    sendRouteError(res, err, {
+      fallbackMessage: "Failed to search game",
+      route: "POST /api/games/:id/search",
+      context: { gameId: req.params.id },
+    });
   }
 });
 
@@ -216,7 +238,11 @@ router.patch("/:id/wanted", async (req, res) => {
 
     res.json(updated);
   } catch (error) {
-    res.status(500).json({ error: "Failed to update wanted status" });
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to update wanted status",
+      route: "PATCH /api/games/:id/wanted",
+      context: { gameId: req.params.id },
+    });
   }
 });
 

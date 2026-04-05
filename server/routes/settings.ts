@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { storage } from "../storage.js";
 import { authenticateToken } from "../auth.js";
+import { sendRouteError } from "../errors.js";
 
 const router = Router();
 router.use(authenticateToken);
@@ -27,7 +28,10 @@ router.get("/", async (_req, res) => {
 
     res.json(result);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch settings" });
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to fetch settings",
+      route: "GET /api/settings",
+    });
   }
 });
 
@@ -37,7 +41,11 @@ router.get("/:key", async (req, res) => {
     const value = await storage.getSetting(req.params.key);
     res.json({ key: req.params.key, value: value ?? null });
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch setting" });
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to fetch setting",
+      route: "GET /api/settings/:key",
+      context: { key: req.params.key },
+    });
   }
 });
 
@@ -48,7 +56,11 @@ router.put("/:key", async (req, res) => {
     await storage.setSetting(req.params.key, value);
     res.json({ key: req.params.key, value });
   } catch (error) {
-    res.status(500).json({ error: "Failed to update setting" });
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to update setting",
+      route: "PUT /api/settings/:key",
+      context: { key: req.params.key },
+    });
   }
 });
 
@@ -66,7 +78,10 @@ router.put("/", async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    res.status(500).json({ error: "Failed to update settings" });
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to update settings",
+      route: "PUT /api/settings",
+    });
   }
 });
 
