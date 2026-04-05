@@ -2807,18 +2807,27 @@ export class QBittorrentClient implements DownloaderClient {
       }
 
       const responseText = await response.text();
-      downloadersLogger.debug({ responseText }, "qBittorrent auth response");
+      downloadersLogger.info({ responseText, status: response.status }, "qBittorrent auth response");
 
       if (responseText && responseText !== "Ok." && responseText !== "") {
         throw new Error(`Authentication failed: ${responseText}`);
       }
 
-      // Extract ALL cookies from response
-      // In Node.js fetch, set-cookie can be retrieved differently
+      // Log all response headers for debugging cookie extraction
+      const allHeaders: Record<string, string> = {};
+      response.headers.forEach((value, key) => {
+        allHeaders[key] = value;
+      });
+      downloadersLogger.info({ allHeaders }, "qBittorrent auth response headers");
+
+      // Extract SID cookie from response
       const setCookieHeaders = response.headers.getSetCookie?.() || [];
+      downloadersLogger.info(
+        { setCookieHeaders, hasGetSetCookie: typeof response.headers.getSetCookie },
+        "qBittorrent Set-Cookie extraction"
+      );
       let sidCookie = null;
 
-      // Try the newer getSetCookie() method first (Node 19.7+)
       if (setCookieHeaders.length > 0) {
         for (const cookie of setCookieHeaders) {
           const match = cookie.match(/SID=([^;]+)/);
@@ -2832,6 +2841,7 @@ export class QBittorrentClient implements DownloaderClient {
       // Fallback to get("set-cookie") for older Node versions
       if (!sidCookie) {
         const setCookie = response.headers.get("set-cookie");
+        downloadersLogger.info({ setCookie }, "qBittorrent Set-Cookie fallback");
         if (setCookie) {
           const match = setCookie.match(/SID=([^;]+)/);
           if (match) {
@@ -2842,13 +2852,12 @@ export class QBittorrentClient implements DownloaderClient {
 
       if (sidCookie) {
         this.cookie = `SID=${sidCookie}`;
-        downloadersLogger.debug(
+        downloadersLogger.info(
           { cookieLength: this.cookie.length },
           "qBittorrent authentication successful with cookie"
         );
       } else {
         downloadersLogger.warn("qBittorrent authentication returned Ok but no SID cookie found");
-        // Some qBittorrent configs don't require cookies, so this might be okay
         this.cookie = null;
       }
     } catch (error) {
