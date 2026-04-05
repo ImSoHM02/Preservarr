@@ -28,21 +28,23 @@ export async function runMigrations(): Promise<void> {
       throw new Error(`Migrations journal not found at: ${journalPath}`);
     }
 
-    const journal = JSON.parse(fs.readFileSync(journalPath, "utf-8"));
+    const journal = JSON.parse(fs.readFileSync(journalPath, "utf-8")) as {
+      entries: Array<{ tag: string }>;
+    };
     const appliedRows = db.all<{ hash: string }>(sql`SELECT hash FROM "__drizzle_migrations"`);
     const appliedHashes = new Set(appliedRows.map((r) => r.hash));
 
-    for (const entry of journal.entries) {
-      const tag = entry.tag;
-      logger.debug(`Checking migration status: ${tag}`);
-
+    const applyMigration = (tag: string) => {
       if (appliedHashes.has(tag)) {
-        continue;
+        return;
       }
 
       logger.info(`Applying migration ${tag}...`);
 
       const sqlPath = path.join(migrationsFolder, `${tag}.sql`);
+      if (!fs.existsSync(sqlPath)) {
+        throw new Error(`Migration SQL not found for tag ${tag} at ${sqlPath}`);
+      }
       const sqlContent = fs.readFileSync(sqlPath, "utf-8");
 
       // SQLite doesn't strictly need statement splitting like pg if using exec() on the driver directly,
@@ -54,39 +56,52 @@ export async function runMigrations(): Promise<void> {
       // Drizzle-kit generated files often use `--> statement-breakpoint` separator.
       const statements = sqlContent.split("--> statement-breakpoint");
 
-      try {
-        db.transaction((tx) => {
-          for (const statement of statements) {
-            if (!statement.trim()) continue;
-            try {
-              tx.run(sql.raw(statement));
-            } catch (e) {
-              // Ignore "table already exists" etc if we want idempotency similar to the old script,
-              // but for SQLite it's often cleaner to just let it fail if schema drift is huge.
-              // The request specifically asked to "adapt the current file", which had error suppression.
-
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const msg = (e as any).message || "";
-              // SQLite error for existing object usually contains "already exists"
-              if (msg.includes("already exists")) {
-                logger.warn(`Skipping statement in ${tag} due to existing object: ${msg}`);
-              } else {
-                throw e;
-              }
+      db.transaction((tx) => {
+        for (const statement of statements) {
+          if (!statement.trim()) continue;
+          try {
+            tx.run(sql.raw(statement));
+          } catch (e) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const msg = ((e as any).message || "").toLowerCase();
+            // Keep migrations idempotent across partially-migrated or manually-fixed databases.
+            if (msg.includes("already exists") || msg.includes("duplicate column name")) {
+              logger.warn(`Skipping statement in ${tag}: ${(e as Error).message}`);
+            } else {
+              throw e;
             }
           }
-        });
+        }
+      });
 
-        db.run(sql`
-          INSERT INTO "__drizzle_migrations" (hash, created_at)
-          VALUES (${tag}, ${Date.now()})
-        `);
+      db.run(sql`
+        INSERT INTO "__drizzle_migrations" (hash, created_at)
+        VALUES (${tag}, ${Date.now()})
+      `);
+      appliedHashes.add(tag);
 
-        logger.info(`Migration ${tag} applied successfully`);
-      } catch (err) {
-        logger.error(`Migration ${tag} failed: ${err}`);
-        throw err;
-      }
+      logger.info(`Migration ${tag} applied successfully`);
+    };
+
+    for (const entry of journal.entries) {
+      const tag = entry.tag;
+      logger.debug(`Checking migration status: ${tag}`);
+      applyMigration(tag);
+    }
+
+    // Safety net: apply any SQL migration files that exist but are missing from _journal.json.
+    // This prevents schema drift if a migration file was added without updating the journal.
+    const journalTags = new Set(journal.entries.map((entry) => entry.tag));
+    const fileTags = fs
+      .readdirSync(migrationsFolder)
+      .filter((file) => file.endsWith(".sql"))
+      .map((file) => file.replace(/\.sql$/, ""))
+      .sort();
+
+    for (const tag of fileTags) {
+      if (journalTags.has(tag)) continue;
+      logger.warn(`Migration ${tag} is not listed in _journal.json. Applying via fallback scan.`);
+      applyMigration(tag);
     }
 
     logger.info("Database migrations completed successfully");

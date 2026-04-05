@@ -15,6 +15,13 @@
       "when": 1775301768261,
       "tag": "0001_seed_platforms",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1775404800000,
+      "tag": "0002_download_client_tracking",
+      "breakpoints": true
     }
   ]
 }
