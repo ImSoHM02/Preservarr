@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Build and distribution
+dist/
+server/public/
+*.tar.gz
+
+# OS and IDE
+.DS_Store
+.vscode/
+
+# Environment and secrets
+.env
+gha-creds-*.json
+
+# Logs
+*.log
+
+# Testing
+coverage/
+playwright*/
+test-results/
+
+# SQLite
+
+data/*
+
+# Project specific
+.gemini/
+gemini.md
+infrastructure/
+vite.config.ts.*
+docker-compose.*local.yml
+notes/
+sqlite.db*
+.omc/
+.sonarlint/connectedMode.json

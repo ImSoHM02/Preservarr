@@ -1,0 +1,21 @@
+services:
+  app:
+    image: ghcr.io/imsohm02/preservarr:latest
+    ports:
+      - "${PORT:-5000}:5000"
+      - "${SSL_PORT:-9898}:${SSL_PORT:-9898}"
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - SQLITE_DB_PATH=/app/data/sqlite.db
+      - SSL_PORT=${SSL_PORT:-9898}
+    volumes:
+      # Persist SQLite database and other data
+      - ./data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:5000/api/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

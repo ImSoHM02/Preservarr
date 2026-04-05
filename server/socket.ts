@@ -1,0 +1,46 @@
+import { Server } from "socket.io";
+import { type Server as HttpServer } from "http";
+import { expressLogger } from "./logger.js";
+import { config } from "./config.js";
+
+let io: Server | undefined;
+
+export function setupSocketIO(httpServer: HttpServer) {
+  if (!io) {
+    io = new Server({
+      cors: {
+        origin:
+          config.server.allowedOrigins.length === 1 && config.server.allowedOrigins[0] === "*"
+            ? "*"
+            : config.server.allowedOrigins,
+        methods: ["GET", "POST"],
+      },
+    });
+
+    io.on("connection", (socket) => {
+      expressLogger.info({ socketId: socket.id }, "Client connected to WebSocket");
+
+      socket.on("disconnect", () => {
+        expressLogger.info({ socketId: socket.id }, "Client disconnected from WebSocket");
+      });
+    });
+  }
+
+  io.attach(httpServer);
+
+  return io;
+}
+
+export function getIO() {
+  if (!io) {
+    throw new Error("Socket.IO not initialized!");
+  }
+  return io;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function notifyUser(type: string, payload: any) {
+  if (io) {
+    io.emit(type, payload);
+  }
+}
