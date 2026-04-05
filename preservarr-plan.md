@@ -68,6 +68,7 @@ Additional platforms can be added via community contributions.
 - Per-platform download paths configurable per client
 - Post-download import: move/copy + rename to target library folder
 - Handle multi-disc/archive extraction automatically
+- **Docker networking**: when running in Docker, download client URLs must use the container name (e.g. `http://gluetun:8080`) rather than the host IP. The same applies to Prowlarr. All outgoing requests go through `safeFetch()` which validates the resolved IP against an SSRF blocklist but uses the original URL for the actual request.
 
 ### 2.6 Naming & Organisation
 - Configurable naming templates per platform
@@ -722,6 +723,23 @@ Only `preservarr-plan.md` retains Questarr references (intentional — documents
 - Re-checks automatically after saving IGDB credentials.
 
 **Type-checks clean:** zero TypeScript errors, Vite build succeeds.
+
+---
+
+### Completed — 2026-04-05: Docker Networking & Download Client Fixes
+
+**SSRF safeFetch rewrite removed** (`server/ssrf.ts`):
+- Root cause: `safeFetch()` rewrote HTTP URLs to use the resolved IP address (DNS rebinding protection), e.g. `http://gluetun:8080` → `http://172.18.0.8:8080` with a `Host: gluetun` header. qBittorrent rejected these requests (403 CSRF, then 401 after adding Origin/Referer headers) because the connection source IP didn't match its expectations.
+- Fix: `safeFetch()` now resolves the hostname and validates the IP is safe (still blocks cloud metadata, link-local, etc.) but makes the request using the **original URL** instead of rewriting it. This matches how Sonarr/Radarr connect to download clients in Docker.
+- Added `Referer` and `Origin` headers to `QBittorrentClient.authenticate()` and `makeRequest()` for qBittorrent's CSRF protection.
+
+**Download client password bug fixed** (`server/routes/download-clients.ts`):
+- Bug: editing a download client with the password field left blank overwrote the stored password with an empty string. The PATCH route only preserved the password when the masked placeholder `"••••••••"` was sent, but the UI always initialised the edit form with `""`.
+- Fix: the PATCH route now treats both empty string and the masked placeholder as "keep existing password".
+
+**Docker networking hints in UI** (`client/src/pages/downloaders.tsx`, `client/src/pages/settings.tsx`):
+- Download client URL placeholder changed from `http://192.168.1.x:8080` → `http://qbittorrent:8080` with helper text: "In Docker, use the container name, not an IP address."
+- Prowlarr URL placeholder changed from `http://192.168.1.x:9696` → `http://prowlarr:9696` with the same helper text.
 
 ---
 

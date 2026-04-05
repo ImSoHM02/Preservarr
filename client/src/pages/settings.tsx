@@ -385,8 +385,11 @@ export default function SettingsPage() {
               <Input
                 value={prowlarrUrl}
                 onChange={(e) => setProwlarrUrl(e.target.value)}
-                placeholder="http://192.168.1.x:9696"
+                placeholder="http://prowlarr:9696"
               />
+              <p className="text-xs text-muted-foreground">
+                In Docker, use the container name (e.g. <code>http://prowlarr:9696</code>), not an IP address.
+              </p>
             </div>
             <div className="space-y-1">
               <Label>API Key</Label>

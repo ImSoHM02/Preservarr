@@ -327,8 +327,11 @@ export default function DownloadersPage() {
               <Input
                 value={form.url}
                 onChange={(e) => setForm({ ...form, url: e.target.value })}
-                placeholder="http://192.168.1.x:8080"
+                placeholder="http://qbittorrent:8080"
               />
+              <p className="text-xs text-muted-foreground">
+                In Docker, use the container name (e.g. <code>http://qbittorrent:8080</code>), not an IP address.
+              </p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
