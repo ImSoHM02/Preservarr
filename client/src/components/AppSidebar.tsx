@@ -6,6 +6,7 @@ import {
   Database,
   HardDrive,
   SlidersHorizontal,
+  FileCheck,
   ScrollText,
   LogOut,
   User,
@@ -58,6 +59,11 @@ const management = [
     title: "Quality Profiles",
     url: "/quality-profiles",
     icon: SlidersHorizontal,
+  },
+  {
+    title: "Version Sources",
+    url: "/version-sources",
+    icon: FileCheck,
   },
   {
     title: "Settings",

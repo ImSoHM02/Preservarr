@@ -22,6 +22,7 @@ import libraryRoutes from "./routes/library.js";
 import indexerRoutes from "./routes/indexers.js";
 import downloadClientRoutes from "./routes/download-clients.js";
 import logsRoutes from "./routes/logs.js";
+import versionSourceRoutes from "./routes/version-sources.js";
 
 process.on("unhandledRejection", (reason) => {
   const summary = summarizeError(reason, "Unhandled promise rejection");
@@ -48,7 +49,7 @@ process.on("uncaughtException", (error) => {
 });
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: false }));
 
 // Apply general rate limiting to all API routes
@@ -119,6 +120,7 @@ app.use((req, res, next) => {
     app.use("/api/indexers", indexerRoutes);
     app.use("/api/download-clients", downloadClientRoutes);
     app.use("/api/logs", logsRoutes);
+    app.use("/api/version-sources", versionSourceRoutes);
 
     // Error handler
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

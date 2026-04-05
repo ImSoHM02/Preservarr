@@ -532,10 +532,41 @@ class Storage {
     }
   }
 
+  async getVersionSource(id: number): Promise<VersionSource | undefined> {
+    return db
+      .select()
+      .from(versionSources)
+      .where(eq(versionSources.id, id))
+      .get();
+  }
+
+  async deleteVersionSource(id: number): Promise<void> {
+    // dat_entries cascade-delete via FK
+    db.delete(versionSources).where(eq(versionSources.id, id)).run();
+  }
+
   async clearDatEntries(versionSourceId: number): Promise<void> {
     db.delete(datEntries)
       .where(eq(datEntries.versionSourceId, versionSourceId))
       .run();
+  }
+
+  async getDatEntryCount(versionSourceId: number): Promise<number> {
+    const result = db
+      .select({ count: sql<number>`count(*)` })
+      .from(datEntries)
+      .where(eq(datEntries.versionSourceId, versionSourceId))
+      .get();
+    return result?.count ?? 0;
+  }
+
+  async getGameFilesForPlatform(platformId: number): Promise<GameFile[]> {
+    return db
+      .select({ gameFiles: gameFiles })
+      .from(gameFiles)
+      .innerJoin(games, eq(gameFiles.gameId, games.id))
+      .where(eq(games.platformId, platformId))
+      .then((rows) => rows.map((r) => r.gameFiles));
   }
 
   // ── Notification Targets ──────────────────

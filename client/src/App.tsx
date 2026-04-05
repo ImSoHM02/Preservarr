@@ -24,6 +24,7 @@ const IndexersPage = lazy(() => import("@/pages/indexers"));
 const DownloadersPage = lazy(() => import("@/pages/downloaders"));
 const DownloadsPage = lazy(() => import("@/pages/downloads"));
 const LogsPage = lazy(() => import("@/pages/logs"));
+const VersionSourcesPage = lazy(() => import("@/pages/version-sources"));
 
 function Router() {
   return (
@@ -44,6 +45,7 @@ function Router() {
         <Route path="/indexers" component={IndexersPage} />
         <Route path="/downloaders" component={DownloadersPage} />
         <Route path="/downloads" component={DownloadsPage} />
+        <Route path="/version-sources" component={VersionSourcesPage} />
         <Route path="/logs" component={LogsPage} />
         <Route component={NotFound} />
       </Switch>
@@ -69,6 +71,7 @@ function App() {
     if (path === "/settings") return "Settings";
     if (path === "/indexers") return "Indexers";
     if (path === "/downloaders") return "Downloaders";
+    if (path === "/version-sources") return "Version Sources";
     if (path === "/logs") return "Logs";
     return "Preservarr";
   };
