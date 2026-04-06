@@ -215,6 +215,14 @@ class Storage {
       .get();
   }
 
+  async deleteGame(id: number): Promise<void> {
+    // Clean up non-cascading references first
+    db.delete(downloadHistory).where(eq(downloadHistory.gameId, id)).run();
+    db.delete(searchHistory).where(eq(searchHistory.gameId, id)).run();
+    // game_files and wanted_games cascade automatically
+    db.delete(games).where(eq(games.id, id)).run();
+  }
+
   async searchGames(query: string): Promise<Game[]> {
     return db
       .select()

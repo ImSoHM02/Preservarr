@@ -12,9 +12,13 @@ import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -35,6 +39,7 @@ import {
   ChevronDown,
   ChevronUp,
   Download,
+  Trash2,
 } from "lucide-react";
 import EmptyState from "@/components/EmptyState";
 
@@ -357,6 +362,8 @@ export default function GamePage({ id }: { id: string }) {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searchStage, setSearchStage] = useState<string | null>(null);
   const [searchErrors, setSearchErrors] = useState<string[]>([]);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteFiles, setDeleteFiles] = useState(false);
 
   const { data: game, isLoading } = useQuery<GameDetail>({
     queryKey: [`/api/games/${id}`],
@@ -385,6 +392,20 @@ export default function GamePage({ id }: { id: string }) {
       setSearchOpen(true);
     },
     onError: () => toast({ title: "Search failed", variant: "destructive" }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (opts: { deleteFiles: boolean }) =>
+      apiRequest("DELETE", `/api/games/${id}`, { deleteFiles: opts.deleteFiles }),
+    onSuccess: () => {
+      toast({ title: "Game removed" });
+      if (game?.platform) {
+        navigate(`/platforms/${game.platform.slug}`);
+      } else {
+        navigate("/platforms");
+      }
+    },
+    onError: () => toast({ title: "Failed to remove game", variant: "destructive" }),
   });
 
   if (isLoading) {
@@ -455,6 +476,17 @@ export default function GamePage({ id }: { id: string }) {
           >
             <Search className={`h-4 w-4 mr-2 ${searchMutation.isPending ? "animate-pulse" : ""}`} />
             {searchMutation.isPending ? "Searching..." : "Search"}
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => {
+              setDeleteFiles(false);
+              setDeleteOpen(true);
+            }}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Remove
           </Button>
         </div>
       </div>
@@ -606,6 +638,43 @@ export default function GamePage({ id }: { id: string }) {
           searchErrors={searchErrors}
         />
       )}
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove {game.title}?</DialogTitle>
+            <DialogDescription>
+              This will remove the game from your library and delete all associated
+              data (wanted status, download history, search history).
+            </DialogDescription>
+          </DialogHeader>
+          {game.files.length > 0 && (
+            <div className="flex items-center gap-2 py-2">
+              <Checkbox
+                id="delete-files"
+                checked={deleteFiles}
+                onCheckedChange={(checked) => setDeleteFiles(checked === true)}
+              />
+              <Label htmlFor="delete-files" className="text-sm">
+                Also delete {game.files.length} file{game.files.length !== 1 ? "s" : ""} from disk
+              </Label>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleteMutation.mutate({ deleteFiles })}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? "Removing..." : "Remove"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -5,6 +5,9 @@ import { db } from "../db.js";
 import { games, gameFiles, wantedGames } from "../../shared/schema.js";
 import { eq, count, and } from "drizzle-orm";
 import { sendRouteError } from "../errors.js";
+import fs from "fs/promises";
+import path from "path";
+import { logger } from "../logger.js";
 
 const router = Router();
 router.use(authenticateToken);
@@ -241,6 +244,57 @@ router.patch("/:id/wanted", async (req, res) => {
     sendRouteError(res, error, {
       fallbackMessage: "Failed to update wanted status",
       route: "PATCH /api/games/:id/wanted",
+      context: { gameId: req.params.id },
+    });
+  }
+});
+
+// DELETE /api/games/:id — remove a game, optionally deleting files from disk
+router.delete("/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const game = await storage.getGame(id);
+    if (!game) {
+      return res.status(404).json({ error: "Game not found" });
+    }
+
+    const deleteFiles = req.body?.deleteFiles === true;
+
+    if (deleteFiles) {
+      const files = await storage.getGameFiles(id);
+      const deletedPaths = new Set<string>();
+
+      for (const file of files) {
+        try {
+          // Delete the file itself
+          await fs.unlink(file.path);
+          deletedPaths.add(path.dirname(file.path));
+        } catch (err: any) {
+          if (err.code !== "ENOENT") {
+            logger.warn({ path: file.path, error: err.message }, "Failed to delete game file");
+          }
+        }
+      }
+
+      // Clean up now-empty parent directories
+      for (const dir of Array.from(deletedPaths)) {
+        try {
+          const remaining = await fs.readdir(dir);
+          if (remaining.length === 0) {
+            await fs.rmdir(dir);
+          }
+        } catch {
+          // Directory may already be gone or not empty — ignore
+        }
+      }
+    }
+
+    await storage.deleteGame(id);
+    res.json({ success: true, filesDeleted: deleteFiles });
+  } catch (error) {
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to delete game",
+      route: "DELETE /api/games/:id",
       context: { gameId: req.params.id },
     });
   }
