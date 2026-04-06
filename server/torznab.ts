@@ -25,6 +25,7 @@ interface TorznabItem {
 interface TorznabSearchParams {
   query?: string;
   category?: string[];
+  skipCategory?: boolean;
   limit?: number;
   offset?: number;
   imdbid?: string;
@@ -207,29 +208,31 @@ export class TorznabClient {
       url.searchParams.set("q", params.query);
     }
 
-    if (params.category && params.category.length > 0) {
-      url.searchParams.set("cat", params.category.join(","));
-    } else {
-      // Default to game categories
-      const configuredCategories = indexer.categories || [];
-
-      if (configuredCategories.length > 0) {
-        // If categories are configured, use only the game-related ones
-        // 40xx: PC Games, 10xx: Console Games
-        const gameCategories = configuredCategories.filter(
-          (cat) =>
-            cat.startsWith("40") ||
-            cat.startsWith("10") ||
-            cat.toLowerCase().includes("game") ||
-            cat.toLowerCase().includes("pc")
-        );
-        if (gameCategories.length > 0) {
-          url.searchParams.set("cat", gameCategories.join(","));
-        }
+    if (!params.skipCategory) {
+      if (params.category && params.category.length > 0) {
+        url.searchParams.set("cat", params.category.join(","));
       } else {
-        // If NO categories are configured, default to standard Game categories
-        // 4000: PC Games, 1000: Console Games
-        url.searchParams.set("cat", "4000,1000");
+        // Default to game categories
+        const configuredCategories = indexer.categories || [];
+
+        if (configuredCategories.length > 0) {
+          // If categories are configured, use only the game-related ones
+          // 40xx: PC Games, 10xx: Console Games
+          const gameCategories = configuredCategories.filter(
+            (cat) =>
+              cat.startsWith("40") ||
+              cat.startsWith("10") ||
+              cat.toLowerCase().includes("game") ||
+              cat.toLowerCase().includes("pc")
+          );
+          if (gameCategories.length > 0) {
+            url.searchParams.set("cat", gameCategories.join(","));
+          }
+        } else {
+          // If NO categories are configured, default to standard Game categories
+          // 4000: PC Games, 1000: Console Games
+          url.searchParams.set("cat", "4000,1000");
+        }
       }
     }
 

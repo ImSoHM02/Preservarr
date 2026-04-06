@@ -236,11 +236,34 @@ export async function searchForGame(options: SearchOptions): Promise<{
     await Promise.allSettled(
       indexers.map(async (indexer: Indexer) => {
         try {
-          const response = await torznabClient.searchGames(indexer, {
+          let response = await torznabClient.searchGames(indexer, {
             query,
             category: categories,
             limit: 100,
           });
+
+          // Some indexers use category maps that don't line up with global platform defaults.
+          // If the category-constrained search returns nothing, retry without category constraints.
+          if (response.items.length === 0 && categories.length > 0) {
+            const broadResponse = await torznabClient.searchGames(indexer, {
+              query,
+              limit: 100,
+              skipCategory: true,
+            });
+            if (broadResponse.items.length > 0) {
+              searchLog.debug(
+                {
+                  gameId,
+                  query,
+                  indexer: indexer.name,
+                  constrainedCategories: categories,
+                  broadResults: broadResponse.items.length,
+                },
+                "Category-constrained search returned no items; broad search fallback found results",
+              );
+            }
+            response = broadResponse;
+          }
 
           for (const item of response.items) {
             const score = scoreResult(
