@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
@@ -206,6 +206,14 @@ function SearchResultsDialog({
 
   const displayed = showAll ? results : results.filter((r) => r.score >= 30);
   const hiddenCount = results.length - displayed.length;
+
+  // Keep dialog-local state aligned with the latest parent search payload.
+  useEffect(() => {
+    if (!open) return;
+    setResults(initialResults);
+    setStage(stageUsed);
+    setShowAll(false);
+  }, [open, initialResults, stageUsed]);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
