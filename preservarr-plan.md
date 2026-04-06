@@ -837,7 +837,7 @@ Only `preservarr-plan.md` retains Questarr references (intentional — documents
 - `library_paths` parsing hardened to handle historical JSON-string encoding patterns in settings.
 
 **Deployment/runtime fix (compose)**:
-- Preservarr must mount the same host path as the downloader at the same in-container path (e.g. `/media/sean/Media2:/data/tv`) for import moves to work.
+- Preservarr must mount the same host path as the downloader at the same in-container path (e.g. `/path/to/media:/data/tv`) for import moves to work.
 
 **Validation**:
 - Super Mario 64 test case confirmed:

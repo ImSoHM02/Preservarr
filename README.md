@@ -76,7 +76,7 @@ preservarr:
     - TZ=Australia/Melbourne
   volumes:
     - ./preservarr/data:/app/data
-    - /media/sean/Media2:/data/tv
+    - /path/to/media:/data/tv
   ports:
     - 5000:5000
   restart: unless-stopped
