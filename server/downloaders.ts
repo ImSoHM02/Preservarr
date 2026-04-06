@@ -23,6 +23,8 @@ export interface DownloadStatus {
   name: string;
   status: string;
   progress: number;
+  downloadDir?: string;
+  contentPath?: string;
 }
 
 export interface DownloadFile {
@@ -127,6 +129,7 @@ interface QBittorrentTorrent {
   num_incomplete: number;
   category?: string;
   save_path?: string;
+  content_path?: string;
   [key: string]: unknown;
 }
 
@@ -411,6 +414,7 @@ export class TransmissionClient implements DownloaderClient {
           "peersGettingFromUs",
           "uploadRatio",
           "errorString",
+          "downloadDir",
         ],
       });
 
@@ -605,6 +609,7 @@ export class TransmissionClient implements DownloaderClient {
       leechers: torrent.peersGettingFromUs,
       ratio: torrent.uploadRatio,
       error: torrent.errorString || undefined,
+      downloadDir: torrent.downloadDir,
     };
   }
 
@@ -1069,6 +1074,7 @@ export class RTorrentClient implements DownloaderClient {
         "d.peers_connected=",
         "d.peers_complete=",
         "d.message=",
+        "d.directory=",
         "d.custom1=",
       ]);
 
@@ -1256,6 +1262,7 @@ export class RTorrentClient implements DownloaderClient {
       "d.peers_connected=",
       "d.peers_complete=",
       "d.message=",
+      "d.directory=",
       "d.custom1=",
     ]);
 
@@ -1339,7 +1346,7 @@ export class RTorrentClient implements DownloaderClient {
   }
 
   private mapRTorrentStatus(torrent: unknown[]): DownloadStatus {
-    // download is an array: [hash, name, state, complete, size, completed, down_rate, up_rate, ratio, peers_connected, peers_complete, message, custom1]
+    // download is an array: [hash, name, state, complete, size, completed, down_rate, up_rate, ratio, peers_connected, peers_complete, message, directory, custom1]
     const [
       hash,
       name,
@@ -1353,6 +1360,7 @@ export class RTorrentClient implements DownloaderClient {
       peersConnected,
       peersComplete,
       message,
+      directory,
       custom1,
     ] = torrent;
 
@@ -1411,6 +1419,7 @@ export class RTorrentClient implements DownloaderClient {
       leechers: Math.max(0, (peersConnected as number) - (peersComplete as number)),
       ratio: (ratio as number) / 1000, // rTorrent returns ratio * 1000
       error: (message as string) || undefined,
+      downloadDir: (directory as string) || undefined,
       category: (custom1 as string) || undefined,
     };
   }
@@ -2744,6 +2753,8 @@ export class QBittorrentClient implements DownloaderClient {
       leechers: torrent.num_leechs,
       ratio: torrent.ratio,
       error: torrent.state === "error" ? "Torrent error" : undefined,
+      downloadDir: torrent.save_path,
+      contentPath: torrent.content_path,
       category: torrent.category,
     };
   }

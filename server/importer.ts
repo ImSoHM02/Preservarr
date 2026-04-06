@@ -19,6 +19,130 @@ const COMPLETE_STATUSES = new Set([
   "Stopped",    // Transmission when finished
 ]);
 
+function getNonEmptyString(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function parseLibraryPaths(raw: unknown): Record<string, string> {
+  if (!raw) return {};
+
+  const asRecord = (value: unknown): Record<string, string> => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+    const out: Record<string, string> = {};
+    for (const [key, entry] of Object.entries(value)) {
+      if (typeof entry === "string" && entry.trim().length > 0) {
+        out[key] = entry.trim();
+      }
+    }
+    return out;
+  };
+
+  // Historically this setting has been stored both as JSON string and object.
+  if (typeof raw === "string") {
+    try {
+      return asRecord(JSON.parse(raw));
+    } catch {
+      return {};
+    }
+  }
+
+  return asRecord(raw);
+}
+
+async function pathExists(p: string): Promise<boolean> {
+  try {
+    await fs.access(p);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function hasSupportedExtension(filePath: string, extensions: string[]): boolean {
+  const exts = new Set(extensions.map((e) => e.toLowerCase().replace(/^\./, "")));
+  return exts.has(path.extname(filePath).slice(1).toLowerCase());
+}
+
+async function findFirstByExtensionRecursive(
+  rootDir: string,
+  extensions: string[],
+  maxDepth: number,
+): Promise<string | null> {
+  const exts = new Set(extensions.map((e) => e.toLowerCase().replace(/^\./, "")));
+  const queue: Array<{ dir: string; depth: number }> = [{ dir: rootDir, depth: 0 }];
+
+  while (queue.length > 0) {
+    const next = queue.shift();
+    if (!next) break;
+
+    let entries: import("fs").Dirent[] = [];
+    try {
+      entries = await fs.readdir(next.dir, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+
+    for (const entry of entries) {
+      if (entry.isFile()) {
+        const ext = path.extname(entry.name).slice(1).toLowerCase();
+        if (exts.has(ext)) {
+          return path.join(next.dir, entry.name);
+        }
+      }
+    }
+
+    if (next.depth >= maxDepth) continue;
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        queue.push({ dir: path.join(next.dir, entry.name), depth: next.depth + 1 });
+      }
+    }
+  }
+
+  return null;
+}
+
+function isPathInside(parentDir: string, candidatePath: string): boolean {
+  const parent = path.resolve(parentDir);
+  const candidate = path.resolve(candidatePath);
+  const rel = path.relative(parent, candidate);
+  return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
+}
+
+async function ensureUniqueDestinationPath(destPath: string): Promise<string> {
+  if (!(await pathExists(destPath))) {
+    return destPath;
+  }
+
+  const dir = path.dirname(destPath);
+  const ext = path.extname(destPath);
+  const base = path.basename(destPath, ext);
+
+  for (let i = 1; i <= 999; i++) {
+    const candidate = path.join(dir, `${base} (${i})${ext}`);
+    if (!(await pathExists(candidate))) {
+      return candidate;
+    }
+  }
+
+  return path.join(dir, `${base}-${Date.now()}${ext}`);
+}
+
+async function moveFileWithCrossDeviceFallback(srcPath: string, destPath: string): Promise<void> {
+  try {
+    await fs.rename(srcPath, destPath);
+    return;
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code !== "EXDEV") throw err;
+  }
+
+  await fs.copyFile(srcPath, destPath);
+  await fs.unlink(srcPath);
+}
+
 /**
  * Find the first ROM file matching the given extensions inside a directory.
  * Checks: dir/name (direct file), dir/name/ (sub-folder), then dir/ directly.
@@ -45,12 +169,9 @@ async function findRomFile(
   // 2. Torrent saves into a sub-folder named after the release
   const subDir = path.join(dir, name);
   try {
-    const entries = await fs.readdir(subDir, { withFileTypes: true });
-    for (const entry of entries) {
-      if (!entry.isFile()) continue;
-      if (exts.has(path.extname(entry.name).slice(1).toLowerCase())) {
-        return path.join(subDir, entry.name);
-      }
+    const recursiveMatch = await findFirstByExtensionRecursive(subDir, extensions, 4);
+    if (recursiveMatch) {
+      return recursiveMatch;
     }
   } catch {
     // sub-folder doesn't exist or can't be read
@@ -98,9 +219,10 @@ export async function pollImports(): Promise<void> {
       );
 
       // Determine save directory: prefer downloadDir from client status, fall back to client.downloadPath
+      const statusObj = status as Record<string, unknown>;
       const downloadDir =
-        (status as Record<string, unknown>).downloadDir as string | undefined ??
-        client.downloadPath;
+        getNonEmptyString(statusObj.downloadDir) ??
+        getNonEmptyString(client.downloadPath);
 
       if (!downloadDir) {
         importLog.warn({ historyId: entry.id }, "No downloadDir available — skipping import");
@@ -120,10 +242,34 @@ export async function pollImports(): Promise<void> {
 
       const extensions = (platform.fileExtensions as string[] | null) ?? [];
 
-      const srcPath = await findRomFile(downloadDir, status.name, extensions);
+      let srcPath: string | null = null;
+
+      const contentPath = getNonEmptyString(statusObj.contentPath);
+      if (contentPath) {
+        try {
+          const contentStat = await fs.stat(contentPath);
+          if (contentStat.isFile() && hasSupportedExtension(contentPath, extensions)) {
+            srcPath = contentPath;
+          } else if (contentStat.isDirectory()) {
+            srcPath = await findFirstByExtensionRecursive(contentPath, extensions, 4);
+          }
+        } catch {
+          // fall back to downloadDir/name lookup below
+        }
+      }
+
+      if (!srcPath) {
+        srcPath = await findRomFile(downloadDir, status.name, extensions);
+      }
+
       if (!srcPath) {
         importLog.warn(
-          { historyId: entry.id, downloadDir, name: status.name },
+          {
+            historyId: entry.id,
+            downloadDir,
+            contentPath: contentPath ?? undefined,
+            name: status.name,
+          },
           "ROM file not found after download — skipping import",
         );
         continue;
@@ -131,19 +277,18 @@ export async function pollImports(): Promise<void> {
 
       // Get the configured library path for this platform
       const rawPaths = await storage.getSetting("library_paths");
-      const libraryPaths: Record<string, string> = rawPaths
-        ? (JSON.parse(rawPaths) as Record<string, string>)
-        : {};
+      const libraryPaths = parseLibraryPaths(rawPaths as unknown);
       const destDir = libraryPaths[platform.slug];
 
       let finalPath = srcPath;
 
-      if (destDir && path.normalize(path.dirname(srcPath)) !== path.normalize(destDir)) {
+      if (destDir && !isPathInside(destDir, srcPath)) {
         // Move to the library directory
         try {
           await fs.mkdir(destDir, { recursive: true });
-          const destPath = path.join(destDir, path.basename(srcPath));
-          await fs.rename(srcPath, destPath);
+          const desiredDestPath = path.join(destDir, path.basename(srcPath));
+          const destPath = await ensureUniqueDestinationPath(desiredDestPath);
+          await moveFileWithCrossDeviceFallback(srcPath, destPath);
           finalPath = destPath;
           importLog.info({ srcPath, destPath }, "File moved to library");
         } catch (err) {
