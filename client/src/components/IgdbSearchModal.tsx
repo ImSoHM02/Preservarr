@@ -115,7 +115,7 @@ export default function IgdbSearchModal({
           </Button>
         </div>
 
-        <ScrollArea className="flex-1 min-h-0 -mx-6 px-6">
+        <ScrollArea className="flex-1 min-h-0">
           {searching ? (
             <div className="space-y-3 py-2">
               {Array.from({ length: 5 }).map((_, i) => (
