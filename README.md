@@ -73,7 +73,7 @@ preservarr:
   environment:
     - PUID=1000
     - PGID=1000
-    - TZ=Australia/Melbourne
+    - TZ=Etc/UTC
   volumes:
     - ./preservarr/data:/app/data
     - /path/to/media:/library
