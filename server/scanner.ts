@@ -154,6 +154,34 @@ async function buildExtensionMap(): Promise<
   return map;
 }
 
+async function collectFilesRecursive(rootDir: string, maxDepth: number): Promise<string[]> {
+  const files: string[] = [];
+  const queue: Array<{ dir: string; depth: number }> = [{ dir: rootDir, depth: 0 }];
+
+  while (queue.length > 0) {
+    const next = queue.shift();
+    if (!next) break;
+
+    let entries: fs.Dirent[] = [];
+    try {
+      entries = await fs.promises.readdir(next.dir, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+
+    for (const entry of entries) {
+      const fullPath = path.join(next.dir, entry.name);
+      if (entry.isFile()) {
+        files.push(fullPath);
+      } else if (entry.isDirectory() && next.depth < maxDepth) {
+        queue.push({ dir: fullPath, depth: next.depth + 1 });
+      }
+    }
+  }
+
+  return files;
+}
+
 // ─────────────────────────────────────────────────────────────
 // Core: process a single file
 // ─────────────────────────────────────────────────────────────
@@ -331,22 +359,13 @@ export async function runFullScan(): Promise<ScanProgress> {
       continue;
     }
 
-    // Walk directory (non-recursive for now to keep it simple)
-    let entries: fs.Dirent[];
-    try {
-      entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
-    } catch {
-      scannerLog.warn({ dirPath }, "Cannot read directory");
-      continue;
-    }
-
-    for (const entry of entries) {
-      if (!entry.isFile()) continue;
-      const ext = path.extname(entry.name).slice(1).toLowerCase();
+    const files = await collectFilesRecursive(dirPath, 6);
+    for (const filePath of files) {
+      const ext = path.extname(filePath).slice(1).toLowerCase();
       const platformInfo = extMap.get(ext);
       if (!platformInfo || platformInfo.id !== platform.id) continue;
       filesToProcess.push({
-        filePath: path.join(dirPath, entry.name),
+        filePath,
         platformId: platform.id,
         namingStandard: platform.namingStandard,
       });
@@ -409,7 +428,7 @@ export async function startWatcher(): Promise<void> {
 
   watcher = chokidarWatch(dirs, {
     ignoreInitial: true,
-    depth: 1,
+    depth: 6,
     awaitWriteFinish: { stabilityThreshold: 2000, pollInterval: 500 },
   });
 
