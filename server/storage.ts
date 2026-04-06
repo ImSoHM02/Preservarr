@@ -16,6 +16,7 @@ import {
   searchHistory,
   versionSources,
   datEntries,
+  titledbEntries,
   notificationTargets,
 } from "../shared/schema.js";
 import { db } from "./db.js";
@@ -39,6 +40,7 @@ export type DownloadHistoryEntry = InferSelectModel<typeof downloadHistory>;
 export type SearchHistoryEntry = InferSelectModel<typeof searchHistory>;
 export type VersionSource = InferSelectModel<typeof versionSources>;
 export type DatEntry = InferSelectModel<typeof datEntries>;
+export type TitledbEntry = InferSelectModel<typeof titledbEntries>;
 export type NotificationTarget = InferSelectModel<typeof notificationTargets>;
 
 // ──────────────────────────────────────────────
@@ -567,6 +569,66 @@ class Storage {
       .innerJoin(games, eq(gameFiles.gameId, games.id))
       .where(eq(games.platformId, platformId))
       .then((rows) => rows.map((r) => r.gameFiles));
+  }
+
+  // ── titledb Entries ───────────────────────
+
+  async getTitledbEntryByTitleId(titleId: string): Promise<TitledbEntry | undefined> {
+    return db
+      .select()
+      .from(titledbEntries)
+      .where(eq(titledbEntries.titleId, titleId))
+      .get();
+  }
+
+  async getTitledbEntries(versionSourceId: number): Promise<TitledbEntry[]> {
+    return db
+      .select()
+      .from(titledbEntries)
+      .where(eq(titledbEntries.versionSourceId, versionSourceId))
+      .all();
+  }
+
+  async bulkInsertTitledbEntries(
+    entries: InferInsertModel<typeof titledbEntries>[],
+  ): Promise<void> {
+    if (entries.length === 0) return;
+    const chunkSize = 500;
+    for (let i = 0; i < entries.length; i += chunkSize) {
+      const chunk = entries.slice(i, i + chunkSize);
+      db.insert(titledbEntries).values(chunk).run();
+    }
+  }
+
+  async clearTitledbEntries(versionSourceId: number): Promise<void> {
+    db.delete(titledbEntries)
+      .where(eq(titledbEntries.versionSourceId, versionSourceId))
+      .run();
+  }
+
+  async getTitledbEntryCount(versionSourceId: number): Promise<number> {
+    const result = db
+      .select({ count: sql<number>`count(*)` })
+      .from(titledbEntries)
+      .where(eq(titledbEntries.versionSourceId, versionSourceId))
+      .get();
+    return result?.count ?? 0;
+  }
+
+  async getGamesForPlatformWithTitleId(platformId: number): Promise<Game[]> {
+    return db
+      .select()
+      .from(games)
+      .where(and(eq(games.platformId, platformId), sql`${games.titleId} IS NOT NULL AND ${games.titleId} != ''`))
+      .all();
+  }
+
+  async getGameFilesByGameId(gameId: number): Promise<GameFile[]> {
+    return db
+      .select()
+      .from(gameFiles)
+      .where(eq(gameFiles.gameId, gameId))
+      .all();
   }
 
   // ── Notification Targets ──────────────────

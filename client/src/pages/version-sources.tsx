@@ -28,6 +28,9 @@ import {
   Info,
   ExternalLink,
   CheckCircle,
+  Download,
+  Loader2,
+  Gamepad2,
 } from "lucide-react";
 import { useRef, useState } from "react";
 
@@ -55,6 +58,19 @@ interface UploadResult {
   matched: { total: number; matched: number; unmatched: number };
 }
 
+interface TitledbStatus {
+  synced: boolean;
+  platform: { id: number; name: string; slug: string } | null;
+  source?: VersionSource;
+  entryCount?: number;
+}
+
+interface TitledbSyncResult {
+  entryCount: number;
+  updated: number;
+  outdated: number;
+}
+
 export default function VersionSourcesPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -62,6 +78,64 @@ export default function VersionSourcesPage() {
   const [selectedPlatformId, setSelectedPlatformId] = useState<string>("");
   const [uploading, setUploading] = useState(false);
   const [lastResult, setLastResult] = useState<UploadResult | null>(null);
+  const [titledbRegion, setTitledbRegion] = useState("US");
+  const [titledbSyncing, setTitledbSyncing] = useState(false);
+  const [titledbResult, setTitledbResult] = useState<TitledbSyncResult | null>(null);
+
+  const { data: titledbStatus } = useQuery<TitledbStatus>({
+    queryKey: ["titledb-status"],
+    queryFn: () =>
+      apiRequest("GET", "/api/version-sources/titledb/status").then((r) => r.json()),
+  });
+
+  const { data: titledbRegions = [] } = useQuery<string[]>({
+    queryKey: ["titledb-regions"],
+    queryFn: () =>
+      apiRequest("GET", "/api/version-sources/titledb/regions").then((r) => r.json()),
+  });
+
+  const handleTitledbSync = async () => {
+    setTitledbSyncing(true);
+    setTitledbResult(null);
+    try {
+      const res = await apiRequest("POST", "/api/version-sources/titledb/sync", {
+        region: titledbRegion,
+      });
+      const result: TitledbSyncResult = await res.json();
+      setTitledbResult(result);
+      queryClient.invalidateQueries({ queryKey: ["titledb-status"] });
+      queryClient.invalidateQueries({ queryKey: ["version-sources"] });
+      toast({
+        title: "titledb synced",
+        description: `${result.entryCount.toLocaleString()} titles loaded, ${result.outdated} with updates available`,
+      });
+    } catch (error) {
+      toast({
+        title: getApiErrorMessage(error, "titledb sync failed"),
+        description: getApiErrorDescription(error),
+        variant: "destructive",
+      });
+    } finally {
+      setTitledbSyncing(false);
+    }
+  };
+
+  const handleTitledbRecheck = async () => {
+    try {
+      const res = await apiRequest("POST", "/api/version-sources/titledb/check");
+      const result = await res.json();
+      toast({
+        title: "Version check complete",
+        description: `${result.updated} files checked, ${result.outdated} outdated`,
+      });
+    } catch (error) {
+      toast({
+        title: getApiErrorMessage(error, "Version check failed"),
+        description: getApiErrorDescription(error),
+        variant: "destructive",
+      });
+    }
+  };
 
   const { data: platforms = [] } = useQuery<Platform[]>({
     queryKey: ["version-sources-platforms"],
@@ -156,10 +230,101 @@ export default function VersionSourcesPage() {
         <div>
           <h1 className="text-2xl font-bold">Version Sources</h1>
           <p className="text-muted-foreground mt-1">
-            Import No-Intro and Redump DAT files to enable ROM verification and
-            version tracking.
+            Sync titledb for Switch version tracking, or import No-Intro and Redump DAT
+            files to enable ROM verification for retro platforms.
           </p>
         </div>
+
+        {/* titledb (Nintendo Switch) */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Gamepad2 className="h-5 w-5" />
+              Nintendo Switch — titledb
+              {titledbStatus?.synced && (
+                <Badge variant="default" className="ml-2">Synced</Badge>
+              )}
+            </CardTitle>
+            <CardDescription>
+              Sync the community-maintained{" "}
+              <a
+                href="https://github.com/nicoboss/titledb"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary underline inline-flex items-center gap-1"
+              >
+                titledb
+                <ExternalLink className="h-3 w-3" />
+              </a>{" "}
+              database to track Switch game versions, updates, and DLC. This runs automatically every day at 02:00.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-3 items-end">
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Region</label>
+                <Select value={titledbRegion} onValueChange={setTitledbRegion}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {titledbRegions.map((r) => (
+                      <SelectItem key={r} value={r}>{r}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button onClick={handleTitledbSync} disabled={titledbSyncing}>
+                {titledbSyncing ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4 mr-2" />
+                )}
+                {titledbSyncing ? "Syncing..." : "Sync Now"}
+              </Button>
+              {titledbStatus?.synced && (
+                <Button variant="outline" onClick={handleTitledbRecheck}>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Re-check Versions
+                </Button>
+              )}
+            </div>
+
+            {titledbStatus?.synced && titledbStatus.source && (
+              <div className="text-sm text-muted-foreground space-x-3">
+                <span>{(titledbStatus.entryCount ?? 0).toLocaleString()} titles</span>
+                <span>|</span>
+                <span>Last synced: {formatDate(titledbStatus.source.lastSyncedAt)}</span>
+              </div>
+            )}
+
+            {titledbResult && (
+              <Alert>
+                <CheckCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <p className="font-medium">Sync complete</p>
+                  <p className="text-sm">
+                    {titledbResult.entryCount.toLocaleString()} titles loaded.{" "}
+                    {titledbResult.updated > 0 ? (
+                      <>
+                        {titledbResult.updated} game files checked —{" "}
+                        {titledbResult.outdated > 0 ? (
+                          <strong>{titledbResult.outdated} with updates available.</strong>
+                        ) : (
+                          "all up to date."
+                        )}
+                      </>
+                    ) : (
+                      "No Switch game files with Title IDs to check yet."
+                    )}
+                  </p>
+                </AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
+
+        <Separator />
 
         {/* Instructions */}
         <Alert>

@@ -221,6 +221,10 @@ app.use((req, res, next) => {
     const { startImportPoller } = await import("./importer.js");
     startImportPoller();
 
+    // Start scheduled jobs (titledb sync, version checks)
+    const { startScheduledJobs } = await import("./cron.js");
+    await startScheduledJobs().catch((err) => log("Cron setup failed: " + String(err)));
+
     log("Preservarr server initialized");
   } catch (error) {
     log("Fatal error during startup:");

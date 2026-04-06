@@ -248,6 +248,41 @@ export const datEntriesRelations = relations(datEntries, ({ one }) => ({
 }));
 
 // ──────────────────────────────────────────────
+// titledb Entries (Nintendo Switch version data)
+// ──────────────────────────────────────────────
+
+export const titledbEntries = sqliteTable(
+  "titledb_entries",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    versionSourceId: integer("version_source_id")
+      .notNull()
+      .references(() => versionSources.id, { onDelete: "cascade" }),
+    titleId: text("title_id").notNull(),
+    name: text("name"),
+    version: text("version"),
+    updateTitleId: text("update_title_id"),
+    dlcTitleIds: text("dlc_title_ids", { mode: "json" }).$type<string[]>(),
+    iconUrl: text("icon_url"),
+    publisher: text("publisher"),
+    region: text("region"),
+  },
+  (table) => ({
+    versionSourceIdx: index("titledb_entries_version_source_id_idx").on(
+      table.versionSourceId,
+    ),
+    titleIdIdx: index("titledb_entries_title_id_idx").on(table.titleId),
+  }),
+);
+
+export const titledbEntriesRelations = relations(titledbEntries, ({ one }) => ({
+  versionSource: one(versionSources, {
+    fields: [titledbEntries.versionSourceId],
+    references: [versionSources.id],
+  }),
+}));
+
+// ──────────────────────────────────────────────
 // Download History
 // ──────────────────────────────────────────────
 

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { authenticateToken } from "../auth.js";
 import { storage } from "../storage.js";
 import { parseDatFile } from "../dat-parser.js";
+import { syncTitledb, checkSwitchVersions, getTitledbRegions } from "../titledb.js";
 import { sendRouteError } from "../errors.js";
 import { routesLogger } from "../logger.js";
 
@@ -208,6 +209,75 @@ router.delete("/:id", async (req, res) => {
     sendRouteError(res, error, {
       fallbackMessage: "Failed to delete version source",
       route: "DELETE /api/version-sources/:id",
+    });
+  }
+});
+
+// POST /api/version-sources/titledb/sync — fetch and sync titledb for Switch
+router.post("/titledb/sync", async (req, res) => {
+  try {
+    const { region } = req.body as { region?: string };
+    const result = await syncTitledb(region || "US");
+    res.json(result);
+  } catch (error) {
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to sync titledb",
+      route: "POST /api/version-sources/titledb/sync",
+    });
+  }
+});
+
+// POST /api/version-sources/titledb/check — re-check Switch versions without re-fetching
+router.post("/titledb/check", async (req, res) => {
+  try {
+    const platforms = await storage.getPlatforms();
+    const switchPlatform = platforms.find((p) => p.slug === "switch");
+    if (!switchPlatform) {
+      return res.status(404).json({ error: "Nintendo Switch platform not found" });
+    }
+    const result = await checkSwitchVersions(switchPlatform.id);
+    res.json(result);
+  } catch (error) {
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to check Switch versions",
+      route: "POST /api/version-sources/titledb/check",
+    });
+  }
+});
+
+// GET /api/version-sources/titledb/regions — list available titledb regions
+router.get("/titledb/regions", (_req, res) => {
+  res.json(getTitledbRegions());
+});
+
+// GET /api/version-sources/titledb/status — get titledb sync status
+router.get("/titledb/status", async (_req, res) => {
+  try {
+    const platforms = await storage.getPlatforms();
+    const switchPlatform = platforms.find((p) => p.slug === "switch");
+    if (!switchPlatform) {
+      return res.json({ synced: false, platform: null });
+    }
+
+    const sources = await storage.getVersionSources(switchPlatform.id);
+    const titledbSource = sources.find((s) => s.sourceType === "titledb");
+
+    if (!titledbSource) {
+      return res.json({ synced: false, platform: switchPlatform });
+    }
+
+    const entryCount = await storage.getTitledbEntryCount(titledbSource.id);
+
+    res.json({
+      synced: true,
+      platform: switchPlatform,
+      source: titledbSource,
+      entryCount,
+    });
+  } catch (error) {
+    sendRouteError(res, error, {
+      fallbackMessage: "Failed to get titledb status",
+      route: "GET /api/version-sources/titledb/status",
     });
   }
 });
