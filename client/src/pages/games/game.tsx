@@ -222,7 +222,7 @@ function SearchResultsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>Search Results — {gameTitle}</DialogTitle>
         </DialogHeader>
@@ -296,9 +296,9 @@ function SearchResultsDialog({
           {displayed.map((r, i) => (
             <div
               key={i}
-              className="flex items-start gap-3 rounded-md border p-3 text-sm"
+              className="flex items-start gap-3 rounded-md border p-3 text-sm overflow-hidden"
             >
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 overflow-hidden">
                 <p className="font-medium truncate">{r.title}</p>
                 <div className="flex gap-3 text-xs text-muted-foreground mt-1">
                   <span>{formatBytes(r.size)}</span>
