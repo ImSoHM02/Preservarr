@@ -774,9 +774,55 @@ Only `preservarr-plan.md` retains Questarr references (intentional — documents
 
 ---
 
+### Completed — 2026-04-06: titledb Sync for Nintendo Switch
+
+**Schema & migration** (`migrations/0003_slow_unus.sql`):
+- New `titledb_entries` table: `title_id` (indexed), `name`, `version`, `update_title_id`, `dlc_title_ids` (JSON array), `icon_url`, `publisher`, `region`, linked to `version_sources` via FK with cascade delete
+
+**Sync service** (`server/titledb.ts`):
+- `syncTitledb(region)` — fetches the community-maintained titledb JSON from GitHub (`nicoboss/titledb`), supports US/EU/JP regions. Parses all entries, computes update Title IDs (base ID with `800` suffix), stores in `titledb_entries`, then runs version checks
+- `checkSwitchVersions(platformId)` — iterates all owned Switch games with a `titleId` set, looks up the titledb entry, compares `knownVersion` against titledb `version` (both numeric, multiples of 65536). Sets `game_files.versionStatus` to `"outdated"` or `"current"` and updates `latestVersion` and `versionCheckedAt`
+- `getTitledbRegions()` — returns available region codes
+
+**Storage methods** (`server/storage.ts`):
+- `getTitledbEntryByTitleId()`, `getTitledbEntries()`, `bulkInsertTitledbEntries()`, `clearTitledbEntries()`, `getTitledbEntryCount()` — CRUD for titledb entries (same chunked bulk insert pattern as DAT entries)
+- `getGamesForPlatformWithTitleId()` — fetches games that have a non-empty `titleId` for a given platform
+- `getGameFilesByGameId()` — fetches all game files for a specific game
+
+**API routes** (`server/routes/version-sources.ts`):
+- `POST /api/version-sources/titledb/sync` — trigger a full sync (accepts optional `{ region }` body, defaults to US). Returns `{ entryCount, updated, outdated }`
+- `POST /api/version-sources/titledb/check` — re-check Switch game versions against existing titledb data without re-fetching
+- `GET /api/version-sources/titledb/status` — returns sync state: whether titledb has been synced, entry count, last sync timestamp, Switch platform info
+- `GET /api/version-sources/titledb/regions` — returns available region codes (`["US", "EU", "JP"]`)
+
+**Scheduled job** (`server/cron.ts`):
+- Daily titledb sync via `node-cron`, default schedule `0 2 * * *` (02:00), configurable via `titledb_sync_cron` setting
+- Region configurable via `titledb_region` setting (default: US)
+- Registered in `server/index.ts` alongside the import poller and filesystem watcher
+
+**Version Sources UI** (`client/src/pages/version-sources.tsx`):
+- New "Nintendo Switch — titledb" card at the top of the page with:
+  - Region selector dropdown (US/EU/JP)
+  - "Sync Now" button with loading spinner
+  - "Re-check Versions" button (only shown when titledb has been synced)
+  - Status line showing title count and last sync timestamp
+  - Result alert after sync: titles loaded, files checked, outdated count
+- Page description updated to mention titledb alongside DAT files
+
+**IGDB search fix** (`server/igdb.ts`, `server/routes/igdb.ts`):
+- Fixed IGDB search returning games from all platforms when searching within a specific platform. The `searchGames()` method now accepts an optional `igdbPlatformId` parameter and injects a `where platforms = (id)` filter into all IGDB Apicalypse queries
+- The `/api/igdb/search` route passes the platform's IGDB ID through to the search, and no longer falls back to unfiltered results
+
+**IGDB error logging fix** (`server/igdb.ts`):
+- All catch blocks in `searchGames()` now log the actual error message instead of empty `{}` objects
+- `authenticate()` and `executeRequest()` now include the API response body in error messages for easier debugging
+
+**Type-checks clean:** zero TypeScript errors, Vite build succeeds.
+
+---
+
 ### What's Next — Phase 2 (remaining)
 
-1. **titledb sync for Switch** — fetch and cache `US.en.json`, cross-reference by Title ID, flag `version_status = 'outdated'`, optionally auto-add update to `wanted_games`.
-2. **Version check service** — scheduled daily job that re-checks all files against their platform's version source (titledb / No-Intro / Redump), fires notifications, optionally triggers auto-upgrade.
-3. **ScreenScraper integration** — richer emulation-specific art (wheel art, snap video, regional box art) sourced by hash match.
-4. **Notification support** — Discord webhook, Telegram, Apprise on import / update-available / download-failed.
+1. **Version check service** — scheduled daily job that re-checks all files against their platform's version source (titledb / No-Intro / Redump), fires notifications, optionally triggers auto-upgrade.
+2. **ScreenScraper integration** — richer emulation-specific art (wheel art, snap video, regional box art) sourced by hash match.
+3. **Notification support** — Discord webhook, Telegram, Apprise on import / update-available / download-failed.
