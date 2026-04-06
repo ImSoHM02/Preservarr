@@ -793,7 +793,7 @@ Only `preservarr-plan.md` retains Questarr references (intentional — documents
 - `POST /api/version-sources/titledb/sync` — trigger a full sync (accepts optional `{ region }` body, defaults to US). Returns `{ entryCount, updated, outdated }`
 - `POST /api/version-sources/titledb/check` — re-check Switch game versions against existing titledb data without re-fetching
 - `GET /api/version-sources/titledb/status` — returns sync state: whether titledb has been synced, entry count, last sync timestamp, Switch platform info
-- `GET /api/version-sources/titledb/regions` — returns available region codes (`["US", "EU", "JP"]`)
+- `GET /api/version-sources/titledb/regions` — returns available locale codes (expanded common set, e.g. `US`, `AU`, `CA`, `GB`, `BR`, `MX`, `DE`, `FR`, `ES`, `IT`, `NL`, `RU`, `CN`, `HK`, `JP`, `KR`; legacy aliases like `EU` and `UK` are mapped internally)
 
 **Scheduled job** (`server/cron.ts`):
 - Daily titledb sync via `node-cron`, default schedule `0 2 * * *` (02:00), configurable via `titledb_sync_cron` setting

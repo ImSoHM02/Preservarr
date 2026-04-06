@@ -23,12 +23,26 @@ const TITLEDB_VERSIONS_URL = `${TITLEDB_REPO_BASE_URL}/versions.json`;
 
 const TITLEDB_LOCALES = {
   US: { country: "US", language: "en" },
+  AU: { country: "AU", language: "en" },
+  CA: { country: "CA", language: "en" },
   GB: { country: "GB", language: "en" },
+  BR: { country: "BR", language: "pt" },
+  MX: { country: "MX", language: "es" },
+  DE: { country: "DE", language: "de" },
+  FR: { country: "FR", language: "fr" },
+  ES: { country: "ES", language: "es" },
+  IT: { country: "IT", language: "it" },
+  NL: { country: "NL", language: "nl" },
+  RU: { country: "RU", language: "ru" },
+  CN: { country: "CN", language: "zh" },
+  HK: { country: "HK", language: "zh" },
   JP: { country: "JP", language: "ja" },
+  KR: { country: "KR", language: "ko" },
 } as const;
 
 // Backward compatibility for previously-saved settings.
 const LEGACY_REGION_ALIASES: Record<string, keyof typeof TITLEDB_LOCALES> = {
+  UK: "GB",
   EU: "GB",
 };
 
