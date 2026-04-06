@@ -16,23 +16,16 @@ router.get("/search", async (req, res) => {
       return res.status(400).json({ error: "q parameter is required" });
     }
 
-    const results = await igdbClient.searchGames(q.trim(), 30);
-
-    // If platformId is specified, filter results to games on that platform's IGDB ID
+    // If platformId is specified, filter IGDB results to that platform
+    let igdbPlatformId: number | undefined;
     if (platformId) {
       const platform = await storage.getPlatform(parseInt(platformId as string, 10));
       if (platform?.igdbPlatformId) {
-        const igdbPlatId = platform.igdbPlatformId;
-        const filtered = results.filter(
-          (game) => game.platforms?.some((p) => p.id === igdbPlatId)
-        );
-        // Return filtered if we got hits, otherwise return all (user might want cross-platform)
-        if (filtered.length > 0) {
-          return res.json(formatResults(filtered));
-        }
+        igdbPlatformId = platform.igdbPlatformId;
       }
     }
 
+    const results = await igdbClient.searchGames(q.trim(), 30, igdbPlatformId);
     res.json(formatResults(results));
   } catch (error) {
     sendRouteError(res, error, {
