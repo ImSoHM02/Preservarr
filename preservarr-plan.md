@@ -394,7 +394,7 @@ Version checking is not one-size-fits-all. The implementation is split into thre
 
 **Nintendo Switch (`version_source: 'titledb'`)**
 
-The community-maintained [titledb](https://github.com/nicoboss/titledb) project publishes a JSON file per region (e.g. `US.en.json`) listing every known Switch Title ID, its name, latest version number, update Title ID, and DLC Title IDs. Preservarr caches this file locally (refreshed daily via a scheduled job) and uses it to:
+The community-maintained [titledb](https://github.com/blawar/titledb) project publishes region-language metadata files (e.g. `US.en.json`, keyed by `nsuId`) and a `versions.json` file (keyed by `titleId` with version history). Preservarr combines these sources, caches the result locally (refreshed daily via a scheduled job), and uses it to:
 
 1. Look up each owned Switch game by its Title ID
 2. Compare `game_files.known_version` against `titledb.version` for that Title ID
@@ -780,7 +780,7 @@ Only `preservarr-plan.md` retains Questarr references (intentional — documents
 - New `titledb_entries` table: `title_id` (indexed), `name`, `version`, `update_title_id`, `dlc_title_ids` (JSON array), `icon_url`, `publisher`, `region`, linked to `version_sources` via FK with cascade delete
 
 **Sync service** (`server/titledb.ts`):
-- `syncTitledb(region)` — fetches the community-maintained titledb JSON from GitHub (`nicoboss/titledb`), supports US/EU/JP regions. Parses all entries, computes update Title IDs (base ID with `800` suffix), stores in `titledb_entries`, then runs version checks
+- `syncTitledb(region)` — fetches titledb data from GitHub (`blawar/titledb`) using region-language metadata plus `versions.json`; supports locale codes and legacy aliases. Parses entries, computes update Title IDs (base ID with `800` suffix), stores in `titledb_entries`, then runs version checks
 - `checkSwitchVersions(platformId)` — iterates all owned Switch games with a `titleId` set, looks up the titledb entry, compares `knownVersion` against titledb `version` (both numeric, multiples of 65536). Sets `game_files.versionStatus` to `"outdated"` or `"current"` and updates `latestVersion` and `versionCheckedAt`
 - `getTitledbRegions()` — returns available region codes
 

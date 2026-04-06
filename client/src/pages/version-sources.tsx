@@ -248,7 +248,7 @@ export default function VersionSourcesPage() {
             <CardDescription>
               Sync the community-maintained{" "}
               <a
-                href="https://github.com/nicoboss/titledb"
+                href="https://github.com/blawar/titledb"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-primary underline inline-flex items-center gap-1"

@@ -43,6 +43,20 @@ export type DatEntry = InferSelectModel<typeof datEntries>;
 export type TitledbEntry = InferSelectModel<typeof titledbEntries>;
 export type NotificationTarget = InferSelectModel<typeof notificationTargets>;
 
+function normalizeSwitchTitleId(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const normalized = value.trim().replace(/^0x/i, "").toLowerCase();
+  if (!/^[0-9a-f]{16}$/.test(normalized)) return null;
+  return normalized;
+}
+
+function getAlternateSwitchTitleId(titleId: string): string | null {
+  if (titleId.length !== 16) return null;
+  if (titleId.endsWith("000")) return `${titleId.slice(0, 13)}800`;
+  if (titleId.endsWith("800")) return `${titleId.slice(0, 13)}000`;
+  return null;
+}
+
 // ──────────────────────────────────────────────
 // Storage class
 // ──────────────────────────────────────────────
@@ -173,7 +187,16 @@ class Storage {
   }
 
   async getGameByTitleId(titleId: string): Promise<Game | undefined> {
-    return db.select().from(games).where(eq(games.titleId, titleId)).get();
+    const normalized = normalizeSwitchTitleId(titleId);
+    if (!normalized) {
+      return db.select().from(games).where(eq(games.titleId, titleId)).get();
+    }
+
+    return db
+      .select()
+      .from(games)
+      .where(sql`lower(${games.titleId}) = ${normalized}`)
+      .get();
   }
 
   async createGame(data: InferInsertModel<typeof games>): Promise<Game> {
@@ -574,11 +597,37 @@ class Storage {
   // ── titledb Entries ───────────────────────
 
   async getTitledbEntryByTitleId(titleId: string): Promise<TitledbEntry | undefined> {
-    return db
+    const normalized = normalizeSwitchTitleId(titleId);
+    if (!normalized) return undefined;
+
+    const direct = db
       .select()
       .from(titledbEntries)
-      .where(eq(titledbEntries.titleId, titleId))
+      .where(sql`lower(${titledbEntries.titleId}) = ${normalized}`)
       .get();
+
+    const alternateTitleId = getAlternateSwitchTitleId(normalized);
+    if (!alternateTitleId) return direct;
+
+    const alternate = db
+      .select()
+      .from(titledbEntries)
+      .where(sql`lower(${titledbEntries.titleId}) = ${alternateTitleId}`)
+      .get();
+
+    if (!direct) return alternate;
+    if (!alternate) return direct;
+
+    const directVersion = Number.parseInt(direct.version ?? "", 10);
+    const alternateVersion = Number.parseInt(alternate.version ?? "", 10);
+    if (Number.isFinite(alternateVersion) && !Number.isFinite(directVersion)) {
+      return alternate;
+    }
+    if (Number.isFinite(alternateVersion) && Number.isFinite(directVersion) && alternateVersion > directVersion) {
+      return alternate;
+    }
+
+    return direct;
   }
 
   async getTitledbEntries(versionSourceId: number): Promise<TitledbEntry[]> {
