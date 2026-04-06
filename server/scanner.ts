@@ -30,6 +30,21 @@ export interface ScanProgress {
 
 export type LibraryPaths = Record<string, string>; // slug → absolute path
 
+type PlatformScanContext = {
+  slug: string;
+  dirPath: string;
+  platformId: number;
+  supportedExtensions: Set<string>;
+  managedFolderMap: Map<string, number>;
+};
+
+type FileScanTarget = {
+  filePath: string;
+  platformId: number;
+  matchedGameId?: number;
+  shouldComputeHashes: boolean;
+};
+
 // ─────────────────────────────────────────────────────────────
 // Module state
 // ─────────────────────────────────────────────────────────────
@@ -78,9 +93,11 @@ function parseRomFilename(filename: string): {
   const revMatch = stem.match(/\(Rev ([^)]+)\)/i);
   const revision = revMatch ? revMatch[1].trim() : null;
 
-  // Remove all parenthesized/bracketed groups to get the clean title
-  const title = stem.replace(/\s*[\[(][^\])]* [\])]?/g, "").trim() ||
-    stem.replace(/\s*\([^)]*\)/g, "").trim();
+  // Remove common parenthesized/bracketed tags to get the clean title.
+  const title = stem
+    .replace(/\s*\([^)]*\)/g, "")
+    .replace(/\s*\[[^\]]*\]/g, "")
+    .trim();
 
   return { title: title || stem, region, revision };
 }
@@ -122,36 +139,206 @@ async function computeHash(
 async function getLibraryPaths(): Promise<LibraryPaths> {
   const raw = await storage.getSetting("library_paths");
   if (!raw) return {};
-  try {
-    return JSON.parse(raw) as LibraryPaths;
-  } catch {
-    return {};
+
+  const asLibraryPaths = (value: unknown): LibraryPaths => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+    const out: LibraryPaths = {};
+    for (const [slug, dirPath] of Object.entries(value)) {
+      if (typeof dirPath === "string" && dirPath.trim().length > 0) {
+        out[slug] = dirPath.trim();
+      }
+    }
+    return out;
+  };
+
+  if (typeof raw === "string") {
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      if (typeof parsed === "string") {
+        try {
+          return asLibraryPaths(JSON.parse(parsed) as unknown);
+        } catch {
+          return {};
+        }
+      }
+      return asLibraryPaths(parsed);
+    } catch {
+      return {};
+    }
   }
+
+  return asLibraryPaths(raw);
 }
 
-/**
- * Build an extension → platform map from the DB.
- * Keys are lowercase extensions (without the dot).
- */
-async function buildExtensionMap(): Promise<
-  Map<string, { id: number; slug: string; namingStandard: string }>
-> {
-  const map = new Map<
-    string,
-    { id: number; slug: string; namingStandard: string }
-  >();
-  const platforms = await storage.getEnabledPlatforms();
-  for (const platform of platforms) {
-    const exts = (platform.fileExtensions as string[]) ?? [];
-    for (const ext of exts) {
-      map.set(ext.toLowerCase().replace(/^\./, ""), {
-        id: platform.id,
-        slug: platform.slug,
-        namingStandard: platform.namingStandard,
-      });
+function normalizeExtension(value: string): string {
+  return value.toLowerCase().replace(/^\./, "");
+}
+
+function isPathInside(parentDir: string, candidatePath: string): boolean {
+  const parent = path.resolve(parentDir);
+  const candidate = path.resolve(candidatePath);
+  const rel = path.relative(parent, candidate);
+  return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
+}
+
+function sanitizePathSegment(name: string): string {
+  const withoutReservedChars = name.replace(/[<>:"/\\|?*]/g, " ");
+  const withoutControlChars = Array.from(withoutReservedChars, (char) =>
+    char.charCodeAt(0) < 32 ? " " : char,
+  ).join("");
+  const sanitized = withoutControlChars
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/[ .]+$/g, "");
+  return sanitized.length > 0 ? sanitized : "Unknown Game";
+}
+
+function toManagedFolderKey(name: string): string {
+  return sanitizePathSegment(name).toLowerCase();
+}
+
+function getTopLevelManagedFolder(rootDir: string, filePath: string): string | null {
+  const rel = path.relative(rootDir, filePath);
+  if (!rel || rel.startsWith("..") || path.isAbsolute(rel)) return null;
+  const parts = rel.split(path.sep).filter((part) => part.length > 0);
+  // Only treat files in subfolders as managed game folder files.
+  if (parts.length < 2) return null;
+  return parts[0];
+}
+
+async function buildManagedFolderMap(platformId: number): Promise<Map<string, number>> {
+  const games = await storage.getGamesByPlatform(platformId);
+  const map = new Map<string, number>();
+  for (const game of games) {
+    const key = toManagedFolderKey(game.title);
+    // Keep first winner for duplicate sanitized folder names.
+    if (!map.has(key)) {
+      map.set(key, game.id);
     }
   }
   return map;
+}
+
+async function buildPlatformScanContexts(libraryPaths: LibraryPaths): Promise<PlatformScanContext[]> {
+  const contexts: PlatformScanContext[] = [];
+
+  for (const [slug, dirPath] of Object.entries(libraryPaths)) {
+    if (!fs.existsSync(dirPath)) {
+      scannerLog.warn({ slug, dirPath }, "Library path does not exist; skipping");
+      continue;
+    }
+
+    const platform = await storage.getPlatformBySlug(slug);
+    if (!platform) {
+      scannerLog.warn({ slug }, "No platform found for slug; skipping");
+      continue;
+    }
+
+    const supportedExtensions = new Set(
+      ((platform.fileExtensions as string[] | null) ?? []).map(normalizeExtension),
+    );
+
+    contexts.push({
+      slug,
+      dirPath,
+      platformId: platform.id,
+      supportedExtensions,
+      managedFolderMap: await buildManagedFolderMap(platform.id),
+    });
+  }
+
+  return contexts;
+}
+
+function buildFileScanTarget(
+  context: PlatformScanContext,
+  filePath: string,
+): FileScanTarget | null {
+  const ext = normalizeExtension(path.extname(filePath).slice(1));
+  const shouldComputeHashes = context.supportedExtensions.has(ext);
+
+  const folderName = getTopLevelManagedFolder(context.dirPath, filePath);
+  const matchedGameId = folderName
+    ? context.managedFolderMap.get(toManagedFolderKey(folderName))
+    : undefined;
+
+  if (!matchedGameId && !shouldComputeHashes) {
+    return null;
+  }
+
+  return {
+    filePath,
+    platformId: context.platformId,
+    matchedGameId,
+    shouldComputeHashes,
+  };
+}
+
+function resolveTargetAcrossContexts(
+  filePath: string,
+  contexts: PlatformScanContext[],
+): FileScanTarget | null {
+  const matchedTarget = contexts
+    .map((context) => buildFileScanTarget(context, filePath))
+    .find((target) => target?.matchedGameId);
+  if (matchedTarget) return matchedTarget;
+
+  return contexts
+    .map((context) => buildFileScanTarget(context, filePath))
+    .find((target): target is FileScanTarget => target !== null) ?? null;
+}
+
+async function resolveWatcherTarget(
+  filePath: string,
+  contexts: PlatformScanContext[],
+): Promise<FileScanTarget | null> {
+  const matchingContexts = contexts.filter((context) =>
+    isPathInside(context.dirPath, filePath),
+  );
+
+  if (matchingContexts.length === 0) return null;
+
+  const folderCandidates = matchingContexts
+    .map((context) => ({
+      context,
+      folderName: getTopLevelManagedFolder(context.dirPath, filePath),
+    }))
+    .filter(
+      (entry): entry is { context: PlatformScanContext; folderName: string } =>
+        typeof entry.folderName === "string",
+    );
+
+  for (const { context, folderName } of folderCandidates) {
+    const key = toManagedFolderKey(folderName);
+    let matchedGameId = context.managedFolderMap.get(key);
+    if (!matchedGameId) {
+      // Refresh map once for dynamic game additions while watcher is running.
+      context.managedFolderMap = await buildManagedFolderMap(context.platformId);
+      matchedGameId = context.managedFolderMap.get(key);
+    }
+    if (!matchedGameId) continue;
+
+    const ext = normalizeExtension(path.extname(filePath).slice(1));
+    return {
+      filePath,
+      platformId: context.platformId,
+      matchedGameId,
+      shouldComputeHashes: context.supportedExtensions.has(ext),
+    };
+  }
+
+  const ext = normalizeExtension(path.extname(filePath).slice(1));
+  const extContexts = matchingContexts.filter((context) =>
+    context.supportedExtensions.has(ext),
+  );
+  if (extContexts.length === 0) return null;
+
+  const selectedContext = extContexts[0];
+  return {
+    filePath,
+    platformId: selectedContext.platformId,
+    shouldComputeHashes: true,
+  };
 }
 
 async function collectFilesRecursive(rootDir: string, maxDepth: number): Promise<string[]> {
@@ -189,7 +376,7 @@ async function collectFilesRecursive(rootDir: string, maxDepth: number): Promise
 async function processFile(
   filePath: string,
   platformId: number,
-  namingStandard: string,
+  options: { matchedGameId?: number; shouldComputeHashes: boolean },
 ): Promise<"added" | "updated" | "skipped" | "error"> {
   try {
     const stat = await fs.promises.stat(filePath);
@@ -201,55 +388,74 @@ async function processFile(
     const existing = await storage.getGameFileByPath(filePath);
 
     if (existing) {
-      // File already tracked; skip unless size changed (re-import)
-      if (existing.sizeBytes === sizeBytes) {
+      const gameChanged = options.matchedGameId && existing.gameId !== options.matchedGameId;
+      if (!gameChanged && existing.sizeBytes === sizeBytes) {
         return "skipped";
       }
-      // Size changed → recompute hashes
-      const crc32 = await computeCRC32(filePath);
-      await storage.updateGameFile(existing.id, {
+
+      const updates: Parameters<typeof storage.updateGameFile>[1] = {
         sizeBytes,
-        crc32,
-        md5: null,
-        sha1: null,
         versionStatus: "unknown",
-      });
-      // Queue full hash re-computation
-      hashQueue.add(() => computeFullHashes(existing.id, filePath));
+      };
+
+      if (gameChanged) {
+        updates.gameId = options.matchedGameId;
+      }
+
+      if (options.shouldComputeHashes) {
+        updates.crc32 = await computeCRC32(filePath);
+        updates.md5 = null;
+        updates.sha1 = null;
+        hashQueue.add(() => computeFullHashes(existing.id, filePath));
+      } else {
+        updates.crc32 = null;
+        updates.md5 = null;
+        updates.sha1 = null;
+      }
+
+      await storage.updateGameFile(existing.id, updates);
       return "updated";
     }
 
     // New file: parse filename and find/create game record
-    const { title, region, revision } = parseRomFilename(filename);
-    const normalizedTitle = normalizeTitle(title);
-
-    // Try to find an existing game with a matching normalized title on this platform
-    const platformGames = await storage.getGamesByPlatform(platformId);
-    const matchedGame = platformGames.find(
-      (g) => normalizeTitle(g.title) === normalizedTitle,
-    );
-
     let gameId: number;
+    let revision: string | null = null;
 
-    if (matchedGame) {
-      gameId = matchedGame.id;
+    if (options.matchedGameId) {
+      gameId = options.matchedGameId;
     } else {
-      // Create a stub game from the filename
-      const newGame = await storage.createGame({
-        title,
-        platformId,
-        region: region ?? undefined,
-      });
-      gameId = newGame.id;
-      scannerLog.info({ gameId, title, platformId }, "Created stub game from scan");
+      const { title, region, revision: parsedRevision } = parseRomFilename(filename);
+      revision = parsedRevision;
+      const normalizedTitle = normalizeTitle(title);
+
+      // Try to find an existing game with a matching normalized title on this platform
+      const platformGames = await storage.getGamesByPlatform(platformId);
+      const matchedGame = platformGames.find(
+        (g) => normalizeTitle(g.title) === normalizedTitle,
+      );
+
+      if (matchedGame) {
+        gameId = matchedGame.id;
+      } else {
+        // Create a stub game from the filename
+        const newGame = await storage.createGame({
+          title,
+          platformId,
+          region: region ?? undefined,
+        });
+        gameId = newGame.id;
+        scannerLog.info({ gameId, title, platformId }, "Created stub game from scan");
+      }
     }
 
-    // Compute CRC32 (fast — blocks briefly for large files but acceptable)
-    const crc32 = await computeCRC32(filePath);
+    let crc32: string | null = null;
+    let knownVersion: string | null = revision ?? null;
 
-    // Look up dat_entries for this hash to get version info
-    const datMatches = await storage.getDatEntriesByHash(crc32);
-    const knownVersion = datMatches[0]?.revision ?? revision ?? null;
+    if (options.shouldComputeHashes) {
+      crc32 = await computeCRC32(filePath);
+      const datMatches = await storage.getDatEntriesByHash(crc32);
+      knownVersion = datMatches[0]?.revision ?? revision ?? null;
+    }
 
     // Create game_file record
     const gameFile = await storage.createGameFile({
@@ -257,15 +463,17 @@ async function processFile(
       path: filePath,
       filename,
       sizeBytes,
-      fileFormat: ext.toUpperCase(),
+      fileFormat: ext.length > 0 ? ext.toUpperCase() : null,
       crc32,
       knownVersion,
       versionStatus: "unknown",
       importedAt: new Date().toISOString(),
     });
 
-    // Queue slow hashes in background
-    hashQueue.add(() => computeFullHashes(gameFile.id, filePath));
+    if (options.shouldComputeHashes) {
+      // Queue slow hashes in background
+      hashQueue.add(() => computeFullHashes(gameFile.id, filePath));
+    }
 
     notifyUser("scanner:file-added", {
       gameId,
@@ -315,14 +523,12 @@ export async function runFullScan(): Promise<ScanProgress> {
   }
 
   const libraryPaths = await getLibraryPaths();
-  const slugPathEntries = Object.entries(libraryPaths);
+  const contexts = await buildPlatformScanContexts(libraryPaths);
 
-  if (slugPathEntries.length === 0) {
+  if (contexts.length === 0) {
     scannerLog.info("No library paths configured; skipping scan");
     return { ...progress };
   }
-
-  const extMap = await buildExtensionMap();
 
   // Reset progress
   Object.assign(progress, {
@@ -341,34 +547,23 @@ export async function runFullScan(): Promise<ScanProgress> {
   notifyUser("scanner:started", { startedAt: progress.startedAt });
 
   // Collect all files first so we can set progress.total
-  const filesToProcess: Array<{
-    filePath: string;
-    platformId: number;
-    namingStandard: string;
-  }> = [];
-
-  for (const [slug, dirPath] of slugPathEntries) {
-    if (!fs.existsSync(dirPath)) {
-      scannerLog.warn({ slug, dirPath }, "Library path does not exist; skipping");
-      continue;
+  const filesToProcess: FileScanTarget[] = [];
+  const contextsByDir = new Map<string, PlatformScanContext[]>();
+  for (const context of contexts) {
+    const group = contextsByDir.get(context.dirPath);
+    if (group) {
+      group.push(context);
+    } else {
+      contextsByDir.set(context.dirPath, [context]);
     }
+  }
 
-    const platform = await storage.getPlatformBySlug(slug);
-    if (!platform) {
-      scannerLog.warn({ slug }, "No platform found for slug; skipping");
-      continue;
-    }
-
+  for (const [dirPath, dirContexts] of Array.from(contextsByDir.entries())) {
     const files = await collectFilesRecursive(dirPath, 6);
     for (const filePath of files) {
-      const ext = path.extname(filePath).slice(1).toLowerCase();
-      const platformInfo = extMap.get(ext);
-      if (!platformInfo || platformInfo.id !== platform.id) continue;
-      filesToProcess.push({
-        filePath,
-        platformId: platform.id,
-        namingStandard: platform.namingStandard,
-      });
+      const target = resolveTargetAcrossContexts(filePath, dirContexts);
+      if (!target) continue;
+      filesToProcess.push(target);
     }
   }
 
@@ -376,9 +571,13 @@ export async function runFullScan(): Promise<ScanProgress> {
   notifyUser("scanner:progress", { ...progress });
 
   // Process files sequentially to avoid overwhelming SQLite
-  for (const { filePath, platformId, namingStandard } of filesToProcess) {
+  for (const target of filesToProcess) {
+    const { filePath } = target;
     progress.currentFile = path.basename(filePath);
-    const result = await processFile(filePath, platformId, namingStandard);
+    const result = await processFile(filePath, target.platformId, {
+      matchedGameId: target.matchedGameId,
+      shouldComputeHashes: target.shouldComputeHashes,
+    });
     progress[result === "added" ? "added" :
               result === "updated" ? "updated" :
               result === "skipped" ? "skipped" : "errors"]++;
@@ -420,11 +619,16 @@ export async function startWatcher(): Promise<void> {
   if (watcher) await stopWatcher();
 
   const libraryPaths = await getLibraryPaths();
-  const dirs = Object.values(libraryPaths).filter((p) => fs.existsSync(p));
+  const contexts = await buildPlatformScanContexts(libraryPaths);
+  const dirs = Array.from(
+    new Set(
+      contexts
+        .map((context) => context.dirPath)
+        .filter((p) => fs.existsSync(p)),
+    ),
+  );
 
   if (dirs.length === 0) return;
-
-  const extMap = await buildExtensionMap();
 
   watcher = chokidarWatch(dirs, {
     ignoreInitial: true,
@@ -433,11 +637,20 @@ export async function startWatcher(): Promise<void> {
   });
 
   watcher.on("add", async (filePath: string) => {
-    const ext = path.extname(filePath).slice(1).toLowerCase();
-    const platformInfo = extMap.get(ext);
-    if (!platformInfo) return;
-    scannerLog.info({ filePath }, "Watcher: new file detected");
-    await processFile(filePath, platformInfo.id, platformInfo.namingStandard);
+    const target = await resolveWatcherTarget(filePath, contexts);
+    if (!target) return;
+    scannerLog.info(
+      {
+        filePath,
+        platformId: target.platformId,
+        matchedGameId: target.matchedGameId ?? undefined,
+      },
+      "Watcher: new file detected",
+    );
+    await processFile(filePath, target.platformId, {
+      matchedGameId: target.matchedGameId,
+      shouldComputeHashes: target.shouldComputeHashes,
+    });
   });
 
   watcher.on("unlink", async (filePath: string) => {

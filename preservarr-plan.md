@@ -183,7 +183,7 @@ Preservarr should align closely with the Questarr/Sonarr ecosystem to lower the 
 │  └─────────────┘  └──────────────┘  └────────────────┘  │
 │                                                          │
 │  ┌──────────────────────────────────────────────────┐   │
-│  │              PostgreSQL (Drizzle ORM)             │   │
+│  │               SQLite (Drizzle ORM)                │   │
 │  └──────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -244,7 +244,7 @@ settings           — key, value (JSON), updated_at
 ### Phase 1 — Core (MVP)
 - Project scaffolding (monorepo: `client/`, `server/`, `shared/`)
 - Docker + Docker Compose setup
-- PostgreSQL schema + Drizzle migrations
+- SQLite schema + Drizzle migrations
 - IGDB metadata integration
 - Library scanner (directory watching, file identification, hash computation, basic status tracking)
 - Basic React UI: platform list, game grid, game detail page
@@ -818,6 +818,32 @@ Only `preservarr-plan.md` retains Questarr references (intentional — documents
 - `authenticate()` and `executeRequest()` now include the API response body in error messages for easier debugging
 
 **Type-checks clean:** zero TypeScript errors, Vite build succeeds.
+
+---
+
+### Completed — 2026-04-06: Import Destination + Library/File Detection Wiring
+
+**Import pipeline behaviour update** (`server/importer.ts`):
+- Import no longer requires a recognised ROM extension before moving.
+- On completed download, Preservarr resolves payload from downloader status (`contentPath` first, then `downloadDir/name`) and moves the **entire payload** (file or folder) into:
+  - `<library_paths[platform_slug]>/<Game Title>/`
+- Move logic is extension-agnostic (archives and sidecars like `.rar`, `.nfo`, `.sfv` are moved too).
+- Added recursive directory move with cross-device fallback and collision-safe destination handling.
+
+**Scanner + game Files wiring** (`server/scanner.ts`):
+- Full scan now maps files inside managed game folders back to the correct existing game by folder name.
+- Watcher add-events use the same mapping logic, so newly moved files appear in the game Files tab.
+- Non-ROM payload files are indexed into `game_files` for the matched game; hash/version checks are still only computed for platform-supported ROM extensions.
+- `library_paths` parsing hardened to handle historical JSON-string encoding patterns in settings.
+
+**Deployment/runtime fix (compose)**:
+- Preservarr must mount the same host path as the downloader at the same in-container path (e.g. `/media/sean/Media2:/data/tv`) for import moves to work.
+
+**Validation**:
+- Super Mario 64 test case confirmed:
+  - Payload moved from `.../downloads/uncategorised/...` to `.../downloads/Super Mario 64/`
+  - Files attached to the game in `game_files`
+  - Game Files UI reflects imported files after refresh/scan
 
 ---
 
