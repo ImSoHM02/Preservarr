@@ -76,7 +76,7 @@ preservarr:
     - TZ=Australia/Melbourne
   volumes:
     - ./preservarr/data:/app/data
-    - /path/to/media:/data/tv
+    - /path/to/media:/library
   ports:
     - 5000:5000
   restart: unless-stopped
