@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./styles/app-classes.css";
 
 /* Tailwind v4 theme configuration */
 @theme {
@@ -292,6 +293,40 @@
     border-color: hsl(var(--border));
   }
 
+  button:not(:disabled),
+  a[href],
+  summary,
+  label[for],
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled),
+  select:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="link"]:not([aria-disabled="true"]),
+  [role="menuitem"]:not([aria-disabled="true"]),
+  [role="option"]:not([aria-disabled="true"]),
+  [role="tab"]:not([aria-disabled="true"]),
+  [role="switch"]:not([aria-disabled="true"]),
+  [role="checkbox"]:not([aria-disabled="true"]),
+  [role="radio"]:not([aria-disabled="true"]),
+  [data-clickable="true"] {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  input[type="checkbox"]:disabled,
+  input[type="radio"]:disabled,
+  select:disabled,
+  [role="button"][aria-disabled="true"],
+  [role="link"][aria-disabled="true"],
+  [role="menuitem"][aria-disabled="true"],
+  [role="option"][aria-disabled="true"],
+  [role="tab"][aria-disabled="true"],
+  [role="switch"][aria-disabled="true"],
+  [role="checkbox"][aria-disabled="true"],
+  [role="radio"][aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+
   body {
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
@@ -302,6 +337,36 @@
 
   html {
     color-scheme: dark;
+  }
+}
+
+@layer components {
+  .ui-progress {
+    width: 100%;
+    height: 1rem;
+    display: block;
+    appearance: none;
+    border: 0;
+    border-radius: 9999px;
+    overflow: hidden;
+    background-color: hsl(var(--secondary));
+  }
+
+  .ui-progress::-webkit-progress-bar {
+    background-color: hsl(var(--secondary));
+    border-radius: 9999px;
+  }
+
+  .ui-progress::-webkit-progress-value {
+    background-color: hsl(var(--primary));
+    border-radius: 9999px;
+    transition: width 0.3s ease;
+  }
+
+  .ui-progress::-moz-progress-bar {
+    background-color: hsl(var(--primary));
+    border-radius: 9999px;
+    transition: width 0.3s ease;
   }
 }
 

@@ -53,21 +53,21 @@ export default function PlatformPage({ slug }: { slug: string }) {
   });
 
   const filteredGames = games?.filter((g) =>
-    g.title.toLowerCase().includes(searchQuery.toLowerCase()),
+    g.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const existingIgdbIds = useMemo(
     () => new Set(games?.map((g) => g.igdbId).filter((id): id is number => id !== null) ?? []),
-    [games],
+    [games]
   );
 
   if (platformLoading) {
     return (
-      <div className="p-6 space-y-4">
-        <Skeleton className="h-8 w-48" />
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+      <div className="page-platforms-platform__padding-6-space-y-4">
+        <Skeleton className="page-platforms-platform__height-8-width-48" />
+        <div className="page-platforms-platform__game-grid">
           {Array.from({ length: 12 }).map((_, i) => (
-            <Skeleton key={i} className="aspect-[3/4] rounded-lg" />
+            <Skeleton key={i} className="page-platforms-platform__aspect-3-4-rounded-lg" />
           ))}
         </div>
       </div>
@@ -89,57 +89,52 @@ export default function PlatformPage({ slug }: { slug: string }) {
   const statusColor = (status: string | undefined) => {
     switch (status) {
       case "owned":
-        return "bg-green-500/10 text-green-500 border-green-500/20";
+        return "page-games-game__badge-success";
       case "wanted":
-        return "bg-blue-500/10 text-blue-500 border-blue-500/20";
+        return "page-platforms-platform__status-released";
       case "searching":
-        return "bg-yellow-500/10 text-yellow-500 border-yellow-500/20";
+        return "page-platforms-platform__status-unreleased";
       case "downloading":
-        return "bg-purple-500/10 text-purple-500 border-purple-500/20";
+        return "page-platforms-platform__status-repack";
       default:
         return "";
     }
   };
 
   return (
-    <div className="p-6 space-y-4 overflow-auto h-full">
-      <div className="flex items-center gap-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate("/platforms")}
-        >
-          <ArrowLeft className="h-4 w-4" />
+    <div className="page-platforms-platform__page">
+      <div className="app-common__row-gap-3">
+        <Button variant="ghost" size="icon" onClick={() => navigate("/platforms")}>
+          <ArrowLeft className="cmp-searchbar__height-4-width-4" />
         </Button>
-        <div className="flex-1">
-          <h2 className="text-lg font-semibold">{platform.name}</h2>
-          <p className="text-sm text-muted-foreground">
-            {platform.gameCount} game{platform.gameCount !== 1 ? "s" : ""} in
-            library
+        <div className="cmp-appsidebar__flex-1">
+          <h2 className="page-platforms-index__text-lg-font-semibold">{platform.name}</h2>
+          <p className="page-downloads__muted-text">
+            {platform.gameCount} game{platform.gameCount !== 1 ? "s" : ""} in library
           </p>
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <div className="app-common__row-gap-3">
+        <div className="page-platforms-platform__max-width-sm-flex-1-relative">
+          <Search className="cmp-igdbsearchmodal__input-icon" />
           <Input
             placeholder="Filter games..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
+            className="cmp-igdbsearchmodal__padding-left-9"
           />
         </div>
         <Button onClick={() => setIgdbModalOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
+          <Plus className="page-downloaders__height-4-width-4-margin-right-2" />
           Add Games
         </Button>
       </div>
 
       {gamesLoading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+        <div className="page-platforms-platform__game-grid">
           {Array.from({ length: 12 }).map((_, i) => (
-            <Skeleton key={i} className="aspect-[3/4] rounded-lg" />
+            <Skeleton key={i} className="page-platforms-platform__aspect-3-4-rounded-lg" />
           ))}
         </div>
       ) : !filteredGames || filteredGames.length === 0 ? (
@@ -153,48 +148,43 @@ export default function PlatformPage({ slug }: { slug: string }) {
           }
         />
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+        <div className="page-platforms-platform__game-grid">
           {filteredGames.map((game) => (
             <Card
               key={game.id}
-              className="group cursor-pointer overflow-hidden transition-all hover:ring-2 hover:ring-primary/50"
+              className="page-platforms-platform__game-card-selected hover-elevate active-elevate-2"
               onClick={() => navigate(`/games/${game.id}`)}
             >
-              <div className="aspect-[3/4] relative bg-muted">
+              <div className="page-platforms-platform__game-cover">
                 {game.coverUrl ? (
                   <img
                     src={game.coverUrl}
                     alt={game.title}
-                    className="w-full h-full object-cover"
+                    className="cmp-igdbsearchmodal__cover-image"
                     loading="lazy"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Gamepad2 className="h-8 w-8 text-muted-foreground" />
+                  <div className="cmp-igdbsearchmodal__center-content">
+                    <Gamepad2 className="page-platforms-platform__placeholder-icon" />
                   </div>
                 )}
                 {game.wanted && (
                   <Badge
-                    className={`absolute top-2 right-2 text-[10px] ${statusColor(game.wanted.status)}`}
+                    className={`page-platforms-platform__status-badge ${statusColor(game.wanted.status)}`}
                   >
                     {game.wanted.status}
                   </Badge>
                 )}
                 {game.fileCount > 0 && (
-                  <Badge
-                    variant="secondary"
-                    className="absolute bottom-2 right-2 text-[10px]"
-                  >
+                  <Badge variant="secondary" className="page-platforms-platform__file-count-badge">
                     {game.fileCount} file{game.fileCount !== 1 ? "s" : ""}
                   </Badge>
                 )}
               </div>
-              <CardContent className="p-3">
-                <h4 className="text-xs font-medium leading-tight line-clamp-2">
-                  {game.title}
-                </h4>
+              <CardContent className="page-platforms-platform__padding-3">
+                <h4 className="page-platforms-platform__game-title">{game.title}</h4>
                 {game.releaseDate && (
-                  <p className="text-[10px] text-muted-foreground mt-1">
+                  <p className="page-platforms-platform__release-date">
                     {new Date(game.releaseDate).getFullYear()}
                   </p>
                 )}

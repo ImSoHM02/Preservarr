@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -16,7 +17,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Folder, Plus, Trash2, RefreshCw, Settings2, Key, CheckCircle2, XCircle } from "lucide-react";
+import {
+  Folder,
+  Plus,
+  Trash2,
+  RefreshCw,
+  Settings2,
+  Key,
+  CheckCircle2,
+  XCircle,
+} from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────
 
@@ -170,45 +180,42 @@ export default function SettingsPage() {
   const enabledPlatforms = platforms.filter((p) => p.enabled);
 
   return (
-    <div className="p-6 space-y-6 overflow-y-auto h-full">
+    <div className="page-settings__page">
       <div>
-        <h1 className="text-2xl font-bold">Settings</h1>
-        <p className="text-muted-foreground">Configure library paths and external services</p>
+        <h1 className="page-auth-login__text-2xl-font-bold">Settings</h1>
+        <p className="page-downloaders__text-muted-foreground">Configure library paths and external services</p>
       </div>
 
       {/* ── Library Paths ── */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Folder className="h-5 w-5" />
+          <CardTitle className="cmp-appsidebar__flex-gap-2-items-center">
+            <Folder className="cmp-pathbrowser__height-5-width-5" />
             Library Paths
           </CardTitle>
           <CardDescription>
             Configure the directories Preservarr scans for ROM files, one path per platform.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="page-auth-login__space-y-4">
           {/* Existing paths */}
           {Object.entries(libraryPaths).length > 0 && (
-            <div className="space-y-2">
+            <div className="cmp-loadingfallback__space-y-2">
               {Object.entries(libraryPaths).map(([slug, dirPath]) => {
                 const platform = platforms.find((p) => p.slug === slug);
                 return (
-                  <div
-                    key={slug}
-                    className="flex items-center gap-3 p-3 bg-muted/40 rounded-md"
-                  >
-                    <Badge variant="secondary" className="shrink-0">
+                  <div key={slug} className="page-settings__path-item">
+                    <Badge variant="secondary" className="cmp-igdbsearchmodal__shrink-0">
                       {platform?.name ?? slug}
                     </Badge>
-                    <span className="font-mono text-sm flex-1 truncate">{dirPath}</span>
+                    <span className="page-settings__path-text">{dirPath}</span>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 shrink-0 text-destructive hover:text-destructive"
+                      className="page-settings__remove-path-button"
                       onClick={() => handleRemovePath(slug)}
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <Trash2 className="page-games-game__height-3-5-width-3-5" />
                     </Button>
                   </div>
                 );
@@ -217,9 +224,9 @@ export default function SettingsPage() {
           )}
 
           {/* Add new path */}
-          <div className="grid grid-cols-[160px_1fr_auto] gap-2 items-end">
-            <div className="space-y-1">
-              <Label className="text-xs">Platform</Label>
+          <div className="page-settings__path-form-grid">
+            <div className="app-common__stack-xs">
+              <Label className="app-common__text-xs">Platform</Label>
               <Select value={newSlug} onValueChange={setNewSlug}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select..." />
@@ -233,8 +240,8 @@ export default function SettingsPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Directory path</Label>
+            <div className="app-common__stack-xs">
+              <Label className="app-common__text-xs">Directory path</Label>
               <Input
                 placeholder="/mnt/roms/switch"
                 value={newPath}
@@ -246,7 +253,7 @@ export default function SettingsPage() {
               onClick={handleAddPath}
               disabled={!newSlug || !newPath || savePathsMutation.isPending}
             >
-              <Plus className="h-4 w-4 mr-1" />
+              <Plus className="page-settings__height-4-width-4-margin-right-1" />
               Add
             </Button>
           </div>
@@ -256,49 +263,43 @@ export default function SettingsPage() {
       {/* ── Scan Controls ── */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <RefreshCw className="h-5 w-5" />
+          <CardTitle className="cmp-appsidebar__flex-gap-2-items-center">
+            <RefreshCw className="cmp-pathbrowser__height-5-width-5" />
             Library Scan
           </CardTitle>
           <CardDescription>
             Manually trigger a scan to import new ROM files from the configured paths.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-4">
+        <CardContent className="page-auth-login__space-y-4">
+          <div className="cmp-header__flex-gap-4-items-center">
             <Button
               onClick={() => scanMutation.mutate()}
               disabled={scanMutation.isPending || scanStatus?.running}
             >
-              <RefreshCw className={`h-4 w-4 mr-2 ${scanStatus?.running ? "animate-spin" : ""}`} />
+              <RefreshCw className={scanStatus?.running ? "page-downloads__spinner" : "page-downloaders__height-4-width-4-margin-right-2"} />
               {scanStatus?.running ? "Scanning..." : "Scan Now"}
             </Button>
             {scanStatus?.finishedAt && !scanStatus.running && (
-              <p className="text-sm text-muted-foreground">
-                Last scan: {new Date(scanStatus.finishedAt).toLocaleString()} —{" "}
-                {scanStatus.added} added, {scanStatus.updated} updated, {scanStatus.skipped} skipped
+              <p className="page-downloads__muted-text">
+                Last scan: {new Date(scanStatus.finishedAt).toLocaleString()} — {scanStatus.added}{" "}
+                added, {scanStatus.updated} updated, {scanStatus.skipped} skipped
               </p>
             )}
           </div>
 
           {scanStatus?.running && (
-            <div className="space-y-1">
-              <div className="flex justify-between text-sm text-muted-foreground">
+            <div className="app-common__stack-xs">
+              <div className="page-settings__progress-row">
                 <span>{scanStatus.currentFile ?? "Scanning..."}</span>
                 <span>
                   {scanStatus.processed} / {scanStatus.total}
                 </span>
               </div>
-              <div className="h-2 bg-muted rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-primary transition-all duration-300"
-                  style={{
-                    width: scanStatus.total > 0
-                      ? `${(scanStatus.processed / scanStatus.total) * 100}%`
-                      : "0%",
-                  }}
-                />
-              </div>
+              <Progress
+                className="page-settings__height-2"
+                value={scanStatus.total > 0 ? (scanStatus.processed / scanStatus.total) * 100 : 0}
+              />
             </div>
           )}
         </CardContent>
@@ -309,17 +310,17 @@ export default function SettingsPage() {
       {/* ── IGDB Settings ── */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Key className="h-5 w-5" />
+          <CardTitle className="cmp-appsidebar__flex-gap-2-items-center">
+            <Key className="cmp-pathbrowser__height-5-width-5" />
             IGDB API
             {igdbStatus?.working ? (
-              <Badge className="bg-green-500/10 text-green-500 border-green-500/20 font-normal ml-1">
-                <CheckCircle2 className="h-3 w-3 mr-1" />
+              <Badge className="page-settings__health-ok-badge">
+                <CheckCircle2 className="page-games-game__height-3-width-3-margin-right-1" />
                 Connected
               </Badge>
             ) : igdbStatus && !igdbStatus.working ? (
-              <Badge className="bg-red-500/10 text-red-400 border-red-500/20 font-normal ml-1">
-                <XCircle className="h-3 w-3 mr-1" />
+              <Badge className="page-settings__health-error-badge">
+                <XCircle className="page-games-game__height-3-width-3-margin-right-1" />
                 Not configured
               </Badge>
             ) : null}
@@ -330,16 +331,16 @@ export default function SettingsPage() {
               href="https://dev.twitch.tv/console"
               target="_blank"
               rel="noreferrer"
-              className="underline"
+              className="page-settings__underline"
             >
               Twitch Developer Portal
             </a>
             .
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
+        <CardContent className="cmp-loadingfallback__space-y-3">
+          <div className="page-downloaders__grid-gap-3-grid-cols-2">
+            <div className="app-common__stack-xs">
               <Label>Client ID</Label>
               <Input
                 value={igdbClientId}
@@ -347,7 +348,7 @@ export default function SettingsPage() {
                 placeholder="Twitch Client ID"
               />
             </div>
-            <div className="space-y-1">
+            <div className="app-common__stack-xs">
               <Label>Client Secret</Label>
               <Input
                 type="password"
@@ -357,11 +358,7 @@ export default function SettingsPage() {
               />
             </div>
           </div>
-          <Button
-            onClick={handleSaveIgdb}
-            disabled={saveSettingsMutation.isPending}
-            size="sm"
-          >
+          <Button onClick={handleSaveIgdb} disabled={saveSettingsMutation.isPending} size="sm">
             Save IGDB Settings
           </Button>
         </CardContent>
@@ -370,28 +367,29 @@ export default function SettingsPage() {
       {/* ── Prowlarr Settings ── */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings2 className="h-5 w-5" />
+          <CardTitle className="cmp-appsidebar__flex-gap-2-items-center">
+            <Settings2 className="cmp-pathbrowser__height-5-width-5" />
             Prowlarr
           </CardTitle>
           <CardDescription>
             Connect to your Prowlarr instance for indexer management.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
+        <CardContent className="cmp-loadingfallback__space-y-3">
+          <div className="page-downloaders__grid-gap-3-grid-cols-2">
+            <div className="app-common__stack-xs">
               <Label>Prowlarr URL</Label>
               <Input
                 value={prowlarrUrl}
                 onChange={(e) => setProwlarrUrl(e.target.value)}
                 placeholder="http://prowlarr:9696"
               />
-              <p className="text-xs text-muted-foreground">
-                In Docker, use the container name (e.g. <code>http://prowlarr:9696</code>), not an IP address.
+              <p className="cmp-appsidebar__muted-xs">
+                In Docker, use the container name (e.g. <code>http://prowlarr:9696</code>), not an
+                IP address.
               </p>
             </div>
-            <div className="space-y-1">
+            <div className="app-common__stack-xs">
               <Label>API Key</Label>
               <Input
                 type="password"
@@ -401,11 +399,7 @@ export default function SettingsPage() {
               />
             </div>
           </div>
-          <Button
-            onClick={handleSaveProwlarr}
-            disabled={saveSettingsMutation.isPending}
-            size="sm"
-          >
+          <Button onClick={handleSaveProwlarr} disabled={saveSettingsMutation.isPending} size="sm">
             Save Prowlarr Settings
           </Button>
         </CardContent>

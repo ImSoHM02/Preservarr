@@ -67,76 +67,68 @@ export default function DownloadsPage() {
   const totalDownloads = queues.reduce((sum, q) => sum + q.downloads.length, 0);
 
   return (
-    <div className="p-6 space-y-4 overflow-y-auto h-full">
-      <div className="flex items-center justify-between">
+    <div className="page-downloaders__page">
+      <div className="page-dashboard__stat-row">
         <div>
-          <h1 className="text-2xl font-bold">Downloads</h1>
-          <p className="text-muted-foreground">
+          <h1 className="page-auth-login__text-2xl-font-bold">Downloads</h1>
+          <p className="page-downloaders__text-muted-foreground">
             {totalDownloads} active download{totalDownloads !== 1 ? "s" : ""}
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? "animate-spin" : ""}`} />
+          <RefreshCw className={isFetching ? "page-downloads__spinner" : "page-downloaders__height-4-width-4-margin-right-2"} />
           Refresh
         </Button>
       </div>
 
-      {isLoading && <p className="text-muted-foreground text-sm">Loading download queue...</p>}
+      {isLoading && <p className="page-downloaders__muted-text">Loading download queue...</p>}
 
       {!isLoading && queues.length === 0 && (
         <Card>
-          <CardContent className="py-12 text-center">
-            <Download className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
-            <p className="font-medium mb-1">No download clients configured</p>
-            <p className="text-sm text-muted-foreground">
-              Add a download client in the Downloaders settings.
-            </p>
+          <CardContent className="page-downloaders__text-center-padding-y-12">
+            <Download className="page-downloaders__empty-icon" />
+            <p className="page-downloaders__font-medium-margin-bottom-1">No download clients configured</p>
+            <p className="page-downloads__muted-text">Add a download client in the Downloaders settings.</p>
           </CardContent>
         </Card>
       )}
 
       {queues.map((clientQueue) => (
         <Card key={clientQueue.clientId}>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Server className="h-4 w-4" />
+          <CardHeader className="page-downloads__padding-bottom-3">
+            <CardTitle className="page-downloads__card-title-row">
+              <Server className="cmp-searchbar__height-4-width-4" />
               {clientQueue.clientName}
-              <Badge variant="secondary" className="ml-auto text-xs">
+              <Badge variant="secondary" className="page-downloads__text-xs-margin-left-auto">
                 {clientQueue.downloads.length} item{clientQueue.downloads.length !== 1 ? "s" : ""}
               </Badge>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="cmp-loadingfallback__space-y-3">
             {clientQueue.downloads.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-2">Queue is empty</p>
+              <p className="page-downloads__empty-text">Queue is empty</p>
             ) : (
               clientQueue.downloads.map((dl) => (
-                <div key={dl.id} className="space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium flex-1 truncate">{dl.name}</span>
-                    <Badge variant={statusBadgeVariant(dl.status)} className="text-xs shrink-0">
+                <div key={dl.id} className="page-downloads__space-y-1-5">
+                  <div className="cmp-appsidebar__flex-gap-2-items-center">
+                    <span className="page-downloads__queue-item-name">{dl.name}</span>
+                    <Badge variant={statusBadgeVariant(dl.status)} className="page-downloads__text-xs-shrink-0">
                       {dl.status}
                     </Badge>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Progress value={dl.progress * 100} className="flex-1 h-1.5" />
-                    <span className="text-xs text-muted-foreground shrink-0 w-10 text-right">
-                      {Math.round(dl.progress * 100)}%
-                    </span>
+                  <div className="app-common__row-gap-3">
+                    <Progress value={dl.progress * 100} className="page-downloads__height-1-5-flex-1" />
+                    <span className="page-downloads__progress-percent">{Math.round(dl.progress * 100)}%</span>
                   </div>
-                  <div className="flex gap-4 text-xs text-muted-foreground">
-                    {typeof dl.size === "number" && (
-                      <span>{formatBytes(dl.size)}</span>
-                    )}
+                  <div className="page-downloads__meta-row">
+                    {typeof dl.size === "number" && <span>{formatBytes(dl.size)}</span>}
                     {typeof dl.dlspeed === "number" && dl.dlspeed > 0 && (
                       <span>↓ {formatBytes(dl.dlspeed)}/s</span>
                     )}
                     {typeof dl.upspeed === "number" && dl.upspeed > 0 && (
                       <span>↑ {formatBytes(dl.upspeed)}/s</span>
                     )}
-                    {typeof dl.num_seeds === "number" && (
-                      <span>{dl.num_seeds} seeds</span>
-                    )}
+                    {typeof dl.num_seeds === "number" && <span>{dl.num_seeds} seeds</span>}
                   </div>
                 </div>
               ))

@@ -44,10 +44,10 @@ export default function PlatformsPage() {
 
   if (isLoading) {
     return (
-      <div className="p-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="page-platforms-index__padding-6">
+        <div className="page-platforms-index__platform-grid">
           {Array.from({ length: 8 }).map((_, i) => (
-            <Skeleton key={i} className="h-32 rounded-lg" />
+            <Skeleton key={i} className="page-platforms-index__height-32-rounded-lg" />
           ))}
         </div>
       </div>
@@ -68,48 +68,44 @@ export default function PlatformsPage() {
   const disabled = platforms.filter((p) => !p.enabled);
 
   return (
-    <div className="p-6 space-y-6 overflow-auto h-full">
-      <div className="flex items-center justify-between">
+    <div className="page-dashboard__container">
+      <div className="page-dashboard__stat-row">
         <div>
-          <h2 className="text-lg font-semibold">
+          <h2 className="page-platforms-index__text-lg-font-semibold">
             {enabled.length} Platform{enabled.length !== 1 ? "s" : ""} Active
           </h2>
-          <p className="text-sm text-muted-foreground">
-            Select a platform to browse its game library
-          </p>
+          <p className="page-downloads__muted-text">Select a platform to browse its game library</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="page-platforms-index__platform-grid">
         {enabled.map((platform) => (
           <Card
             key={platform.id}
-            className="cursor-pointer transition-colors hover:bg-accent/50"
+            className="page-platforms-index__platform-card-hover hover-elevate active-elevate-2"
             onClick={() => navigate(`/platforms/${platform.slug}`)}
           >
-            <CardContent className="p-5">
-              <div className="flex items-start justify-between mb-3">
-                <div className="bg-primary/10 p-2.5 rounded-lg">
-                  <Gamepad2 className="h-5 w-5 text-primary" />
+            <CardContent className="page-dashboard__stat-content">
+              <div className="page-platforms-index__card-header">
+                <div className="page-dashboard__stat-icon-wrap">
+                  <Gamepad2 className="page-dashboard__stat-icon" />
                 </div>
                 {platform.gameCount > 0 && (
                   <Badge variant="secondary">{platform.gameCount} games</Badge>
                 )}
               </div>
-              <h3 className="font-semibold text-sm">{platform.name}</h3>
-              <p className="text-xs text-muted-foreground mt-1">
-                {platform.fileExtensions
-                  .map((ext) => `.${ext}`)
-                  .join(", ")}
+              <h3 className="page-platforms-index__text-sm-font-semibold">{platform.name}</h3>
+              <p className="page-platforms-index__card-subtext">
+                {platform.fileExtensions.map((ext) => `.${ext}`).join(", ")}
               </p>
-              <div className="flex gap-1.5 mt-2">
+              <div className="page-platforms-index__flex-gap-1-5-margin-top-2">
                 {platform.versionSource !== "none" && (
-                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                  <Badge variant="outline" className="cmp-igdbsearchmodal__text-10px-padding-x-1-5-padding-y-0">
                     {platform.versionSource}
                   </Badge>
                 )}
                 {platform.namingStandard !== "none" && (
-                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                  <Badge variant="outline" className="cmp-igdbsearchmodal__text-10px-padding-x-1-5-padding-y-0">
                     {platform.namingStandard}
                   </Badge>
                 )}
@@ -121,26 +117,22 @@ export default function PlatformsPage() {
 
       {disabled.length > 0 && (
         <>
-          <h3 className="text-sm font-medium text-muted-foreground pt-2">
-            Disabled Platforms
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 opacity-50">
+          <h3 className="page-platforms-index__disabled-title">Disabled Platforms</h3>
+          <div className="page-platforms-index__disabled-grid">
             {disabled.map((platform) => (
               <Card
                 key={platform.id}
-                className="cursor-pointer transition-colors hover:bg-accent/50"
+                className="page-platforms-index__platform-card-hover hover-elevate active-elevate-2"
                 onClick={() => navigate(`/platforms/${platform.slug}`)}
               >
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="bg-muted p-2.5 rounded-lg">
-                      <Gamepad2 className="h-5 w-5 text-muted-foreground" />
+                <CardContent className="page-dashboard__stat-content">
+                  <div className="page-platforms-index__card-header">
+                    <div className="page-platforms-index__background-muted-padding-2-5-rounded-lg">
+                      <Gamepad2 className="page-platforms-index__platform-icon" />
                     </div>
                   </div>
-                  <h3 className="font-semibold text-sm">{platform.name}</h3>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Disabled
-                  </p>
+                  <h3 className="page-platforms-index__text-sm-font-semibold">{platform.name}</h3>
+                  <p className="page-platforms-index__card-subtext">Disabled</p>
                 </CardContent>
               </Card>
             ))}

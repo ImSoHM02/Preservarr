@@ -71,10 +71,10 @@ export default function LogsPage() {
   });
 
   return (
-    <div className="p-6 space-y-4 overflow-y-auto h-full">
+    <div className="page-downloaders__page">
       <div>
-        <h1 className="text-2xl font-bold">Logs</h1>
-        <p className="text-muted-foreground">
+        <h1 className="page-auth-login__text-2xl-font-bold">Logs</h1>
+        <p className="page-downloaders__text-muted-foreground">
           Detailed system logs for API calls, indexer/downloader tests, and background services.
         </p>
       </div>
@@ -82,10 +82,12 @@ export default function LogsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Filters</CardTitle>
-          <CardDescription>Use filters to isolate connection failures and API errors.</CardDescription>
+          <CardDescription>
+            Use filters to isolate connection failures and API errors.
+          </CardDescription>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-[180px_180px_1fr_1fr_auto] gap-3 items-end">
-          <div className="space-y-1">
+        <CardContent className="page-logs__filters-grid">
+          <div className="app-common__stack-xs">
             <Label>Level</Label>
             <Select value={levels} onValueChange={setLevels}>
               <SelectTrigger>
@@ -101,12 +103,12 @@ export default function LogsPage() {
             </Select>
           </div>
 
-          <div className="space-y-1">
+          <div className="app-common__stack-xs">
             <Label>Rows</Label>
             <Input value={limit} onChange={(e) => setLimit(e.target.value.replace(/[^\d]/g, ""))} />
           </div>
 
-          <div className="space-y-1">
+          <div className="app-common__stack-xs">
             <Label>Module</Label>
             <Input
               placeholder="downloaders, torznab, routes..."
@@ -115,7 +117,7 @@ export default function LogsPage() {
             />
           </div>
 
-          <div className="space-y-1">
+          <div className="app-common__stack-xs">
             <Label>Search</Label>
             <Input
               placeholder="econnrefused, auth failed, timeout..."
@@ -125,7 +127,7 @@ export default function LogsPage() {
           </div>
 
           <Button onClick={() => refetch()} disabled={isFetching}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? "animate-spin" : ""}`} />
+            <RefreshCw className={isFetching ? "page-downloads__spinner" : "page-downloaders__height-4-width-4-margin-right-2"} />
             Refresh
           </Button>
         </CardContent>
@@ -133,42 +135,40 @@ export default function LogsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Entries</CardTitle>
+          <CardTitle className="page-logs__text-base">Entries</CardTitle>
           <CardDescription>
             {data?.entries.length ?? 0} rows {data?.truncated ? "(tail window)" : ""} •{" "}
             {data?.filePath ?? "server.log"}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoading && <p className="text-sm text-muted-foreground">Loading logs...</p>}
+          {isLoading && <p className="page-downloads__muted-text">Loading logs...</p>}
           {!isLoading && (!data || data.entries.length === 0) && (
-            <p className="text-sm text-muted-foreground">No log entries matched your filters.</p>
+            <p className="page-downloads__muted-text">No log entries matched your filters.</p>
           )}
 
-          <div className="space-y-2">
+          <div className="cmp-loadingfallback__space-y-2">
             {data?.entries.map((entry, idx) => (
-              <div key={`${entry.timestamp}-${idx}`} className="rounded-md border p-3 space-y-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Badge variant={levelBadgeVariant(entry.level)}>{entry.level.toUpperCase()}</Badge>
-                  <span className="text-xs text-muted-foreground">
-                    {new Date(entry.timestamp).toLocaleString()}
-                  </span>
+              <div key={`${entry.timestamp}-${idx}`} className="page-logs__entry-card">
+                <div className="page-logs__entry-header">
+                  <Badge variant={levelBadgeVariant(entry.level)}>
+                    {entry.level.toUpperCase()}
+                  </Badge>
+                  <span className="cmp-appsidebar__muted-xs">{new Date(entry.timestamp).toLocaleString()}</span>
                   {entry.module && (
-                    <Badge variant="outline" className="text-xs">
+                    <Badge variant="outline" className="app-common__text-xs">
                       {entry.module}
                     </Badge>
                   )}
                   {entry.requestId && (
-                    <Badge variant="outline" className="text-xs font-mono">
+                    <Badge variant="outline" className="page-logs__text-xs-font-mono">
                       {entry.requestId}
                     </Badge>
                   )}
                 </div>
-                <p className="text-sm break-words">{entry.message}</p>
+                <p className="page-logs__text-sm-break-words">{entry.message}</p>
                 {entry.context && (
-                  <pre className="text-xs bg-muted/50 rounded p-2 overflow-x-auto whitespace-pre-wrap break-words">
-                    {JSON.stringify(entry.context, null, 2)}
-                  </pre>
+                  <pre className="page-logs__context-json">{JSON.stringify(entry.context, null, 2)}</pre>
                 )}
               </div>
             ))}
@@ -178,4 +178,3 @@ export default function LogsPage() {
     </div>
   );
 }
-

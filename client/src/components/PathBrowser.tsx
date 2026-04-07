@@ -120,19 +120,19 @@ export function PathBrowser({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+      <DialogContent className="cmp-pathbrowser__dialog-content">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <HardDrive className="h-5 w-5" />
+          <DialogTitle className="cmp-appsidebar__flex-gap-2-items-center">
+            <HardDrive className="cmp-pathbrowser__height-5-width-5" />
             {title}
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleManualPath} className="flex gap-2 my-2">
+        <form onSubmit={handleManualPath} className="cmp-pathbrowser__flex-gap-2-margin-y-2">
           <Input
             value={currentPath}
             onChange={(e) => setCurrentPath(e.target.value)}
-            className="flex-1 font-mono text-sm"
+            className="cmp-pathbrowser__text-sm-flex-1-font-mono"
             placeholder="/path/to/directory"
           />
           <Button type="submit" variant="secondary" size="sm">
@@ -140,57 +140,55 @@ export function PathBrowser({
           </Button>
         </form>
 
-        <div className="flex-1 min-h-0 border rounded-md bg-background">
-          <ScrollArea className="h-[400px]">
+        <div className="cmp-pathbrowser__tree-panel">
+          <ScrollArea className="cmp-pathbrowser__height-400px">
             {isLoading ? (
-              <div className="flex items-center justify-center h-full p-8">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <div className="cmp-pathbrowser__loading-wrap">
+                <Loader2 className="cmp-pathbrowser__loading-icon" />
               </div>
             ) : error ? (
-              <div className="text-destructive p-8 text-center flex flex-col items-center gap-2">
-                <ShieldAlert className="h-8 w-8" />
+              <div className="cmp-pathbrowser__error-wrap">
+                <ShieldAlert className="cmp-pathbrowser__height-8-width-8" />
                 <p>Failed to access directory.</p>
                 <Button variant="outline" size="sm" onClick={() => setCurrentPath("/")}>
                   Go to Root
                 </Button>
               </div>
             ) : (
-              <div className="p-1">
+              <div className="cmp-pathbrowser__padding-1">
                 {data?.parent && (
                   <div
-                    className="flex items-center gap-2 p-2 hover:bg-accent rounded-sm cursor-pointer select-none"
+                    className="cmp-pathbrowser__item-hover hover-elevate active-elevate"
                     onClick={() => data.parent && handleNavigate(data.parent.path)}
                   >
-                    <ArrowUp className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">..</span>
+                    <ArrowUp className="cmp-igdbsearchmodal__icon-muted" />
+                    <span className="cmp-pathbrowser__text-sm-font-medium">..</span>
                   </div>
                 )}
                 {filteredFiles?.map((file: FileSystemEntry) => (
                   <div
                     key={file.name}
-                    className={`flex items-center gap-2 p-2 rounded-sm cursor-pointer select-none ${
+                    className={`cmp-pathbrowser__item-row ${
                       selectedPath === file.path
-                        ? "bg-primary text-primary-foreground"
-                        : "hover:bg-accent"
-                    }`}
+                        ? "cmp-pathbrowser__item-selected"
+                        : "cmp-pathbrowser__background-accent"
+                    } hover-elevate active-elevate`}
                     onClick={() => handleSelect(file.path, file.isDirectory)}
                   >
                     {file.isDirectory ? (
                       <Folder
-                        className={`h-4 w-4 ${selectedPath === file.path ? "text-primary-foreground" : "text-blue-500"}`}
+                        className={`${selectedPath === file.path ? "cmp-pathbrowser__selected-icon" : "cmp-pathbrowser__text-blue-500-height-4-width-4"}`}
                       />
                     ) : (
                       <File
-                        className={`h-4 w-4 ${selectedPath === file.path ? "text-primary-foreground" : "text-gray-500"}`}
+                        className={`${selectedPath === file.path ? "cmp-pathbrowser__selected-icon" : "cmp-pathbrowser__text-gray-500-height-4-width-4"}`}
                       />
                     )}
-                    <span className="text-sm truncate font-mono flex-1">{file.name}</span>
+                    <span className="cmp-pathbrowser__item-path">{file.name}</span>
                   </div>
                 ))}
                 {filteredFiles?.length === 0 && (
-                  <div className="text-muted-foreground text-sm p-8 text-center italic">
-                    No files found
-                  </div>
+                  <div className="cmp-pathbrowser__empty-state">No files found</div>
                 )}
               </div>
             )}
@@ -198,11 +196,9 @@ export function PathBrowser({
         </div>
 
         <DialogFooter>
-          <div className="flex justify-between w-full items-center pt-2">
-            <div className="text-xs text-muted-foreground truncate max-w-[300px] font-mono mr-2">
-              {selectedPath || "No file selected"}
-            </div>
-            <div className="gap-2 flex">
+          <div className="cmp-pathbrowser__footer">
+            <div className="cmp-pathbrowser__selected-path">{selectedPath || "No file selected"}</div>
+            <div className="cmp-pathbrowser__flex-gap-2">
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>

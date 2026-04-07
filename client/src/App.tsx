@@ -34,12 +34,8 @@ function Router() {
         <Route path="/setup" component={SetupPage} />
         <Route path="/" component={DashboardPage} />
         <Route path="/platforms" component={PlatformsPage} />
-        <Route path="/platforms/:slug">
-          {(params) => <PlatformPage slug={params.slug} />}
-        </Route>
-        <Route path="/games/:id">
-          {(params) => <GamePage id={params.id} />}
-        </Route>
+        <Route path="/platforms/:slug">{(params) => <PlatformPage slug={params.slug} />}</Route>
+        <Route path="/games/:id">{(params) => <GamePage id={params.id} />}</Route>
         <Route path="/quality-profiles" component={QualityProfilesPage} />
         <Route path="/settings" component={SettingsPage} />
         <Route path="/indexers" component={IndexersPage} />
@@ -55,11 +51,6 @@ function Router() {
 
 function App() {
   const [location, navigate] = useLocation();
-
-  const style = {
-    "--sidebar-width": "16rem",
-    "--sidebar-width-icon": "4rem",
-  };
 
   const getPageTitle = (path: string) => {
     if (path === "/") return "Dashboard";
@@ -95,12 +86,12 @@ function App() {
       <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
         <AuthProvider>
           <TooltipProvider>
-            <SidebarProvider style={style as React.CSSProperties}>
-              <div className="flex h-screen w-full overflow-hidden">
+            <SidebarProvider className="app-shell__prop-sidebar-width">
+              <div className="app-shell__layout">
                 <AppSidebar activeItem={location} onNavigate={navigate} />
-                <div className="flex flex-col flex-1 min-w-0">
+                <div className="app-shell__main">
                   <Header title={getPageTitle(location)} />
-                  <main className="flex-1 overflow-hidden">
+                  <main className="app-shell__flex-1-overflow-hidden">
                     <Router />
                   </main>
                 </div>

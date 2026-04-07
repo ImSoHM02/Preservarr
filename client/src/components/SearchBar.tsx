@@ -53,16 +53,16 @@ export default function SearchBar({
   };
 
   return (
-    <div className="space-y-3">
-      <form onSubmit={handleSearch} className="flex gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+    <div className="cmp-loadingfallback__space-y-3">
+      <form onSubmit={handleSearch} className="cmp-igdbsearchmodal__flex-gap-2">
+        <div className="cmp-igdbsearchmodal__flex-1-relative">
+          <Search className="cmp-searchbar__search-icon" />
           <Input
             type="search"
             placeholder={placeholder}
             value={searchQuery}
             onChange={handleInputChange}
-            className="pl-10 pr-10"
+            className="cmp-searchbar__padding-left-10-padding-right-10"
             data-testid="input-search"
             aria-label="Search games"
           />
@@ -71,17 +71,17 @@ export default function SearchBar({
               type="button"
               variant="ghost"
               size="icon"
-              className="absolute right-3 top-1/2 h-6 w-6 -translate-y-1/2 p-0 hover:bg-transparent"
+              className="cmp-searchbar__clear-button"
               onClick={handleClearSearch}
               aria-label="Clear search"
               data-testid="button-clear-search"
             >
-              <X className="h-4 w-4" />
+              <X className="cmp-searchbar__height-4-width-4" />
             </Button>
           )}
         </div>
         <Button type="submit" variant="default" data-testid="button-search" aria-label="Search">
-          <Search className="w-4 h-4" />
+          <Search className="cmp-appsidebar__height-4-width-4" />
         </Button>
         <Button
           type="button"
@@ -90,7 +90,7 @@ export default function SearchBar({
           data-testid="button-filter"
           aria-label="Toggle filters"
         >
-          <Filter className="w-4 h-4" />
+          <Filter className="cmp-appsidebar__height-4-width-4" />
         </Button>
         <Button
           type="button"
@@ -99,29 +99,29 @@ export default function SearchBar({
           data-testid="button-layout-settings"
           aria-label="Toggle layout settings"
         >
-          <LayoutGrid className="w-4 h-4" />
+          <LayoutGrid className="cmp-appsidebar__height-4-width-4" />
         </Button>
       </form>
 
       {activeFilters.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="cmp-searchbar__flex-gap-2-flex-wrap">
           {activeFilters.map((filter) => (
             <Badge
               key={filter}
               variant="secondary"
-              className="gap-1"
+              className="cmp-searchbar__gap-1"
               data-testid={`filter-${filter.toLowerCase().replace(/\s+/g, "-")}`}
             >
               {filter}
               <Button
                 variant="ghost"
                 size="icon"
-                className="w-3 h-3 p-0 hover:bg-transparent"
+                className="cmp-searchbar__clear-icon-button"
                 onClick={() => handleRemoveFilter(filter)}
                 aria-label={`Remove filter: ${filter}`}
                 data-testid={`button-remove-filter-${filter.toLowerCase().replace(/\s+/g, "-")}`}
               >
-                <X className="w-3 h-3" />
+                <X className="cmp-searchbar__height-3-width-3" />
               </Button>
             </Badge>
           ))}

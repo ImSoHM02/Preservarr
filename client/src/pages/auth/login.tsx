@@ -37,15 +37,15 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
+    <div className="page-auth-login__screen">
+      <Card className="page-auth-login__max-width-md-width-full">
+        <CardHeader className="page-auth-login__text-center">
+          <CardTitle className="page-auth-login__text-2xl-font-bold">Welcome Back</CardTitle>
           <CardDescription>Login to manage your game collection</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="page-auth-login__space-y-4">
               <FormField
                 control={form.control}
                 name="username"
@@ -53,9 +53,13 @@ export default function LoginPage() {
                   <FormItem>
                     <FormLabel>Username</FormLabel>
                     <FormControl>
-                      <div className="relative">
-                        <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input className="pl-9" placeholder="Enter your username" {...field} />
+                      <div className="page-auth-login__relative">
+                        <User className="page-auth-login__input-icon" />
+                        <Input
+                          className="cmp-igdbsearchmodal__padding-left-9"
+                          placeholder="Enter your username"
+                          {...field}
+                        />
                       </div>
                     </FormControl>
                     <FormMessage />
@@ -69,11 +73,11 @@ export default function LoginPage() {
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <div className="page-auth-login__relative">
+                        <Lock className="page-auth-login__input-icon" />
                         <Input
                           type="password"
-                          className="pl-9"
+                          className="cmp-igdbsearchmodal__padding-left-9"
                           autoComplete="current-password"
                           placeholder="Enter your password"
                           {...field}
@@ -84,7 +88,7 @@ export default function LoginPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button type="submit" className="page-auth-login__width-full" disabled={isLoading}>
                 {isLoading ? "Logging in..." : "Login"}
               </Button>
             </form>

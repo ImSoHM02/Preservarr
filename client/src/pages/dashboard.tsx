@@ -2,13 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Gamepad2,
-  HardDrive,
-  Download,
-  Clock,
-  ArrowRight,
-} from "lucide-react";
+import { Gamepad2, HardDrive, Download, Clock, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type PlatformWithCount = {
@@ -27,18 +21,13 @@ export default function DashboardPage() {
   });
 
   const enabledPlatforms = platforms?.filter((p) => p.enabled) ?? [];
-  const totalGames = enabledPlatforms.reduce(
-    (sum, p) => sum + p.gameCount,
-    0,
-  );
-  const activePlatforms = enabledPlatforms.filter(
-    (p) => p.gameCount > 0,
-  );
+  const totalGames = enabledPlatforms.reduce((sum, p) => sum + p.gameCount, 0);
+  const activePlatforms = enabledPlatforms.filter((p) => p.gameCount > 0);
 
   return (
-    <div className="p-6 space-y-6 overflow-auto h-full">
+    <div className="page-dashboard__container">
       {/* Stats cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="page-dashboard__stats-grid">
         <StatCard
           title="Platforms"
           value={isLoading ? null : enabledPlatforms.length}
@@ -51,12 +40,7 @@ export default function DashboardPage() {
           subtitle="in library"
           icon={HardDrive}
         />
-        <StatCard
-          title="Wanted"
-          value={isLoading ? null : 0}
-          subtitle="pending"
-          icon={Clock}
-        />
+        <StatCard title="Wanted" value={isLoading ? null : 0} subtitle="pending" icon={Clock} />
         <StatCard
           title="Downloads"
           value={isLoading ? null : 0}
@@ -67,43 +51,39 @@ export default function DashboardPage() {
 
       {/* Platform overview */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between py-4">
-          <CardTitle className="text-sm font-medium">
-            Platform Overview
-          </CardTitle>
+        <CardHeader className="page-dashboard__platform-header">
+          <CardTitle className="page-dashboard__section-title">Platform Overview</CardTitle>
           <Button
             variant="ghost"
             size="sm"
-            className="text-xs"
+            className="app-common__text-xs"
             onClick={() => navigate("/platforms")}
           >
-            View all <ArrowRight className="ml-1 h-3 w-3" />
+            View all <ArrowRight className="page-dashboard__view-all-icon" />
           </Button>
         </CardHeader>
-        <CardContent className="pb-4">
+        <CardContent className="page-dashboard__platform-content">
           {isLoading ? (
-            <div className="space-y-3">
+            <div className="page-dashboard__loading-list">
               {Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={i} className="h-10 w-full" />
+                <Skeleton key={i} className="page-dashboard__loading-row" />
               ))}
             </div>
           ) : enabledPlatforms.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-6">
-              No platforms configured yet.
-            </p>
+            <p className="page-dashboard__empty-message">No platforms configured yet.</p>
           ) : (
-            <div className="space-y-1">
+            <div className="app-common__stack-xs">
               {enabledPlatforms.map((platform) => (
                 <button
                   key={platform.id}
                   onClick={() => navigate(`/platforms/${platform.slug}`)}
-                  className="flex items-center justify-between w-full rounded-md px-3 py-2 text-sm hover:bg-accent/50 transition-colors"
+                  className="page-dashboard__platform-row hover-elevate active-elevate"
                 >
-                  <div className="flex items-center gap-3">
-                    <Gamepad2 className="h-4 w-4 text-muted-foreground" />
+                  <div className="app-common__row-gap-3">
+                    <Gamepad2 className="page-dashboard__platform-icon" />
                     <span>{platform.name}</span>
                   </div>
-                  <span className="text-muted-foreground text-xs">
+                  <span className="page-dashboard__platform-count">
                     {platform.gameCount} game
                     {platform.gameCount !== 1 ? "s" : ""}
                   </span>
@@ -130,19 +110,19 @@ function StatCard({
 }) {
   return (
     <Card>
-      <CardContent className="p-5">
-        <div className="flex items-center justify-between">
+      <CardContent className="page-dashboard__stat-content">
+        <div className="page-dashboard__stat-row">
           <div>
-            <p className="text-xs font-medium text-muted-foreground">{title}</p>
+            <p className="page-dashboard__stat-label">{title}</p>
             {value !== null ? (
-              <p className="text-2xl font-bold mt-1">{value}</p>
+              <p className="page-dashboard__stat-value">{value}</p>
             ) : (
-              <Skeleton className="h-8 w-12 mt-1" />
+              <Skeleton className="page-dashboard__stat-skeleton" />
             )}
-            <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>
+            <p className="page-dashboard__stat-subtitle">{subtitle}</p>
           </div>
-          <div className="bg-primary/10 p-2.5 rounded-lg">
-            <Icon className="h-5 w-5 text-primary" />
+          <div className="page-dashboard__stat-icon-wrap">
+            <Icon className="page-dashboard__stat-icon" />
           </div>
         </div>
       </CardContent>

@@ -105,18 +105,18 @@ function formatBytes(bytes: number): string {
 function versionBadgeColor(status: string) {
   switch (status) {
     case "current":
-      return "bg-green-500/10 text-green-500 border-green-500/20";
+      return "page-games-game__badge-success";
     case "outdated":
-      return "bg-amber-500/10 text-amber-500 border-amber-500/20";
+      return "page-games-game__badge-warning";
     default:
-      return "bg-gray-500/10 text-gray-400 border-gray-500/20";
+      return "page-games-game__badge-neutral";
   }
 }
 
 function scoreBadgeColor(score: number) {
-  if (score >= 70) return "bg-green-500/10 text-green-500 border-green-500/20";
-  if (score >= 40) return "bg-amber-500/10 text-amber-500 border-amber-500/20";
-  return "bg-red-500/10 text-red-400 border-red-500/20";
+  if (score >= 70) return "page-games-game__badge-success";
+  if (score >= 40) return "page-games-game__badge-warning";
+  return "page-games-game__badge-error";
 }
 
 type DownloadClient = {
@@ -163,13 +163,12 @@ function SearchResultsDialog({
 
   // Auto-select the only client when there's exactly one
   const effectiveClientId =
-    selectedClientId ||
-    (enabledClients.length === 1 ? String(enabledClients[0].id) : "");
+    selectedClientId || (enabledClients.length === 1 ? String(enabledClients[0].id) : "");
 
   const researchMutation = useMutation({
     mutationFn: (query: string) =>
-      apiRequest("POST", `/api/games/${gameId}/search`, { query: query || undefined }).then(
-        (r) => r.json(),
+      apiRequest("POST", `/api/games/${gameId}/search`, { query: query || undefined }).then((r) =>
+        r.json()
       ),
     onSuccess: (data) => {
       setResults(data.results);
@@ -222,19 +221,19 @@ function SearchResultsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col overflow-hidden">
+      <DialogContent className="page-games-game__search-dialog-content">
         <DialogHeader>
           <DialogTitle>Search Results — {gameTitle}</DialogTitle>
         </DialogHeader>
 
         {/* Manual override + client picker row */}
-        <div className="flex gap-2">
+        <div className="cmp-igdbsearchmodal__flex-gap-2">
           <Input
             placeholder="Override query..."
             value={manualQuery}
             onChange={(e) => setManualQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && researchMutation.mutate(manualQuery)}
-            className="flex-1"
+            className="cmp-appsidebar__flex-1"
           />
           <Button
             variant="outline"
@@ -242,21 +241,21 @@ function SearchResultsDialog({
             onClick={() => researchMutation.mutate(manualQuery)}
             disabled={researchMutation.isPending}
           >
-            <Search className="h-4 w-4" />
+            <Search className="cmp-searchbar__height-4-width-4" />
           </Button>
         </div>
 
         {/* Client selector — only shown when multiple clients exist */}
         {enabledClients.length > 1 && (
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground shrink-0">Send to:</span>
+          <div className="cmp-appsidebar__flex-gap-2-items-center">
+            <span className="page-games-game__sendto-label">Send to:</span>
             <Select value={effectiveClientId} onValueChange={setSelectedClientId}>
-              <SelectTrigger className="h-8 text-xs flex-1">
+              <SelectTrigger className="page-games-game__text-xs-height-8-flex-1">
                 <SelectValue placeholder="Select client..." />
               </SelectTrigger>
               <SelectContent>
                 {enabledClients.map((c) => (
-                  <SelectItem key={c.id} value={String(c.id)} className="text-xs">
+                  <SelectItem key={c.id} value={String(c.id)} className="app-common__text-xs">
                     {c.name}
                   </SelectItem>
                 ))}
@@ -266,59 +265,50 @@ function SearchResultsDialog({
         )}
 
         {enabledClients.length === 0 && (
-          <p className="text-xs text-amber-500">
+          <p className="page-games-game__text-amber-500-text-xs">
             No download clients configured. Add one in Downloaders settings.
           </p>
         )}
 
         {stage && (
-          <p className="text-xs text-muted-foreground">
-            Query used: <span className="font-mono">{stage}</span>
+          <p className="cmp-appsidebar__muted-xs">
+            Query used: <span className="page-games-game__font-mono">{stage}</span>
           </p>
         )}
 
         {searchErrors.length > 0 && (
-          <p className="text-xs text-amber-500">
-            Indexer errors: {searchErrors.join("; ")}
-          </p>
+          <p className="page-games-game__text-amber-500-text-xs">Indexer errors: {searchErrors.join("; ")}</p>
         )}
 
         {/* Results list */}
-        <div className="flex-1 overflow-y-auto space-y-2 min-h-0">
+        <div className="page-games-game__results-list">
           {displayed.length === 0 && !researchMutation.isPending && (
-            <p className="text-sm text-muted-foreground text-center py-6">
-              No results found. Try a different query.
-            </p>
+            <p className="page-dashboard__empty-message">No results found. Try a different query.</p>
           )}
-          {researchMutation.isPending && (
-            <p className="text-sm text-muted-foreground text-center py-6">Searching...</p>
-          )}
+          {researchMutation.isPending && <p className="page-dashboard__empty-message">Searching...</p>}
           {displayed.map((r, i) => (
-            <div
-              key={i}
-              className="flex items-start gap-3 rounded-md border p-3 text-sm overflow-hidden"
-            >
-              <div className="flex-1 min-w-0 overflow-hidden">
-                <p className="font-medium truncate">{r.title}</p>
-                <div className="flex gap-3 text-xs text-muted-foreground mt-1">
+            <div key={i} className="page-games-game__result-row">
+              <div className="page-games-game__result-main">
+                <p className="page-games-game__font-medium-truncate">{r.title}</p>
+                <div className="page-games-game__result-meta">
                   <span>{formatBytes(r.size)}</span>
                   <span>{r.seeders} seeds</span>
                   <span>{r.indexerName}</span>
                 </div>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <Badge className={`text-[10px] ${scoreBadgeColor(r.score)}`}>
+              <div className="page-downloaders__actions-row">
+                <Badge className={`page-games-game__text-10px ${scoreBadgeColor(r.score)}`}>
                   {r.score}
                 </Badge>
                 <Button
                   size="sm"
                   variant={effectiveClientId ? "default" : "ghost"}
-                  className="h-7 px-2"
+                  className="page-games-game__height-7-padding-x-2"
                   disabled={sendingLink === r.link}
                   onClick={() => handleSendToClient(r)}
                   title={effectiveClientId ? "Send to download client" : "No client selected"}
                 >
-                  <Download className="h-3.5 w-3.5" />
+                  <Download className="page-games-game__height-3-5-width-3-5" />
                 </Button>
               </div>
             </div>
@@ -329,10 +319,10 @@ function SearchResultsDialog({
           <Button
             variant="ghost"
             size="sm"
-            className="text-xs self-start"
+            className="page-games-game__text-xs-self-start"
             onClick={() => setShowAll(true)}
           >
-            <ChevronDown className="h-3 w-3 mr-1" />
+            <ChevronDown className="page-games-game__height-3-width-3-margin-right-1" />
             Show {hiddenCount} low-score result{hiddenCount !== 1 ? "s" : ""}
           </Button>
         )}
@@ -340,10 +330,10 @@ function SearchResultsDialog({
           <Button
             variant="ghost"
             size="sm"
-            className="text-xs self-start"
+            className="page-games-game__text-xs-self-start"
             onClick={() => setShowAll(false)}
           >
-            <ChevronUp className="h-3 w-3 mr-1" />
+            <ChevronUp className="page-games-game__height-3-width-3-margin-right-1" />
             Collapse
           </Button>
         )}
@@ -378,13 +368,15 @@ export default function GamePage({ id }: { id: string }) {
     },
     onError: (err) => {
       const msg = err instanceof Error ? err.message : "Failed";
-      toast({ title: msg.includes("already") ? "Already in wanted list" : msg, variant: "destructive" });
+      toast({
+        title: msg.includes("already") ? "Already in wanted list" : msg,
+        variant: "destructive",
+      });
     },
   });
 
   const searchMutation = useMutation({
-    mutationFn: () =>
-      apiRequest("POST", `/api/games/${id}/search`).then((r) => r.json()),
+    mutationFn: () => apiRequest("POST", `/api/games/${id}/search`).then((r) => r.json()),
     onSuccess: (data) => {
       setSearchResults(data.results ?? []);
       setSearchStage(data.stageUsed ?? null);
@@ -410,14 +402,14 @@ export default function GamePage({ id }: { id: string }) {
 
   if (isLoading) {
     return (
-      <div className="p-6 space-y-6">
-        <Skeleton className="h-8 w-64" />
-        <div className="flex gap-6">
-          <Skeleton className="w-64 aspect-[3/4] rounded-lg" />
-          <div className="flex-1 space-y-4">
-            <Skeleton className="h-6 w-48" />
-            <Skeleton className="h-20 w-full" />
-            <Skeleton className="h-6 w-32" />
+      <div className="page-games-game__padding-6-space-y-6">
+        <Skeleton className="page-games-game__height-8-width-64" />
+        <div className="page-games-game__flex-gap-6">
+          <Skeleton className="page-games-game__cover-skeleton" />
+          <div className="page-games-game__flex-1-space-y-4">
+            <Skeleton className="page-games-game__height-6-width-48" />
+            <Skeleton className="page-games-game__height-20-width-full" />
+            <Skeleton className="page-games-game__height-6-width-32" />
           </div>
         </div>
       </div>
@@ -437,27 +429,23 @@ export default function GamePage({ id }: { id: string }) {
   }
 
   return (
-    <div className="p-6 space-y-6 overflow-auto h-full">
+    <div className="page-dashboard__container">
       {/* Header */}
-      <div className="flex items-center gap-3">
+      <div className="app-common__row-gap-3">
         <Button
           variant="ghost"
           size="icon"
           onClick={() =>
-            game.platform
-              ? navigate(`/platforms/${game.platform.slug}`)
-              : navigate("/platforms")
+            game.platform ? navigate(`/platforms/${game.platform.slug}`) : navigate("/platforms")
           }
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="cmp-searchbar__height-4-width-4" />
         </Button>
-        <div className="flex-1 min-w-0">
-          <h2 className="text-lg font-semibold truncate">{game.title}</h2>
-          {game.platform && (
-            <p className="text-sm text-muted-foreground">{game.platform.name}</p>
-          )}
+        <div className="cmp-igdbsearchmodal__min-width-0-flex-1">
+          <h2 className="page-games-game__game-title">{game.title}</h2>
+          {game.platform && <p className="page-downloads__muted-text">{game.platform.name}</p>}
         </div>
-        <div className="flex gap-2 shrink-0">
+        <div className="page-games-game__flex-gap-2-shrink-0">
           {!game.wanted && (
             <Button
               variant="outline"
@@ -465,7 +453,7 @@ export default function GamePage({ id }: { id: string }) {
               onClick={() => wantedMutation.mutate()}
               disabled={wantedMutation.isPending}
             >
-              <Heart className="h-4 w-4 mr-2" />
+              <Heart className="page-downloaders__height-4-width-4-margin-right-2" />
               Add to Wanted
             </Button>
           )}
@@ -474,7 +462,13 @@ export default function GamePage({ id }: { id: string }) {
             onClick={() => searchMutation.mutate()}
             disabled={searchMutation.isPending}
           >
-            <Search className={`h-4 w-4 mr-2 ${searchMutation.isPending ? "animate-pulse" : ""}`} />
+            <Search
+              className={
+                searchMutation.isPending
+                  ? "page-games-game__pulsing-icon"
+                  : "page-downloaders__height-4-width-4-margin-right-2"
+              }
+            />
             {searchMutation.isPending ? "Searching..." : "Search"}
           </Button>
           <Button
@@ -485,72 +479,66 @@ export default function GamePage({ id }: { id: string }) {
               setDeleteOpen(true);
             }}
           >
-            <Trash2 className="h-4 w-4 mr-2" />
+            <Trash2 className="page-downloaders__height-4-width-4-margin-right-2" />
             Remove
           </Button>
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-6">
+      <div className="page-games-game__content-layout">
         {/* Cover art */}
-        <div className="w-full md:w-64 shrink-0">
-          <div className="aspect-[3/4] rounded-lg overflow-hidden bg-muted">
+        <div className="page-games-game__width-64-width-full-shrink-0">
+          <div className="page-games-game__cover-frame">
             {game.coverUrl ? (
-              <img
-                src={game.coverUrl}
-                alt={game.title}
-                className="w-full h-full object-cover"
-              />
+              <img src={game.coverUrl} alt={game.title} className="cmp-igdbsearchmodal__cover-image" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <Gamepad2 className="h-12 w-12 text-muted-foreground" />
+              <div className="cmp-igdbsearchmodal__center-content">
+                <Gamepad2 className="page-games-game__placeholder-icon" />
               </div>
             )}
           </div>
           {game.wanted && (
-            <Badge className="mt-3 w-full justify-center" variant="outline">
+            <Badge className="page-games-game__width-full-justify-center-margin-top-3" variant="outline">
               Status: {game.wanted.status}
             </Badge>
           )}
         </div>
 
         {/* Details */}
-        <div className="flex-1 space-y-4">
-          {game.description && (
-            <p className="text-sm text-muted-foreground leading-relaxed">{game.description}</p>
-          )}
+        <div className="page-games-game__flex-1-space-y-4">
+          {game.description && <p className="page-games-game__description">{game.description}</p>}
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="page-downloaders__grid-gap-3-grid-cols-2">
             {game.releaseDate && (
-              <div className="flex items-center gap-2 text-sm">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
+              <div className="page-games-game__meta-item">
+                <Calendar className="cmp-igdbsearchmodal__icon-muted" />
                 <span>{new Date(game.releaseDate).toLocaleDateString()}</span>
               </div>
             )}
             {game.region && (
-              <div className="flex items-center gap-2 text-sm">
-                <Globe className="h-4 w-4 text-muted-foreground" />
+              <div className="page-games-game__meta-item">
+                <Globe className="cmp-igdbsearchmodal__icon-muted" />
                 <span>{game.region}</span>
               </div>
             )}
             {game.igdbId && (
-              <div className="flex items-center gap-2 text-sm">
-                <Tag className="h-4 w-4 text-muted-foreground" />
+              <div className="page-games-game__meta-item">
+                <Tag className="cmp-igdbsearchmodal__icon-muted" />
                 <span>IGDB: {game.igdbId}</span>
               </div>
             )}
             {game.titleId && (
-              <div className="flex items-center gap-2 text-sm">
-                <Tag className="h-4 w-4 text-muted-foreground" />
+              <div className="page-games-game__meta-item">
+                <Tag className="cmp-igdbsearchmodal__icon-muted" />
                 <span>Title ID: {game.titleId}</span>
               </div>
             )}
           </div>
 
           {game.genres && game.genres.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
+            <div className="page-games-game__flex-gap-1-5-flex-wrap">
               {game.genres.map((genre) => (
-                <Badge key={genre} variant="secondary" className="text-xs">
+                <Badge key={genre} variant="secondary" className="app-common__text-xs">
                   {genre}
                 </Badge>
               ))}
@@ -559,10 +547,10 @@ export default function GamePage({ id }: { id: string }) {
 
           {game.alternateNames && game.alternateNames.length > 0 && (
             <div>
-              <p className="text-xs font-medium text-muted-foreground mb-1">Alternate Names</p>
-              <div className="flex flex-wrap gap-1.5">
+              <p className="page-games-game__alt-names-label">Alternate Names</p>
+              <div className="page-games-game__flex-gap-1-5-flex-wrap">
                 {game.alternateNames.map((name) => (
-                  <Badge key={name} variant="outline" className="text-xs">
+                  <Badge key={name} variant="outline" className="app-common__text-xs">
                     {name}
                   </Badge>
                 ))}
@@ -576,39 +564,38 @@ export default function GamePage({ id }: { id: string }) {
 
       {/* Files */}
       <Card>
-        <CardHeader className="py-4">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <FileBox className="h-4 w-4" />
+        <CardHeader className="page-downloaders__padding-y-4">
+          <CardTitle className="page-games-game__section-title-row">
+            <FileBox className="cmp-searchbar__height-4-width-4" />
             Files ({game.files.length})
           </CardTitle>
         </CardHeader>
         {game.files.length > 0 ? (
-          <CardContent className="py-0 pb-4">
-            <div className="space-y-2">
+          <CardContent className="page-games-game__padding-y-0-padding-bottom-4">
+            <div className="cmp-loadingfallback__space-y-2">
               {game.files.map((file) => (
-                <div
-                  key={file.id}
-                  className="flex items-center justify-between rounded-md border p-3 text-sm"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <HardDrive className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <div className="min-w-0">
-                      <p className="font-medium truncate">{file.filename}</p>
-                      <p className="text-xs text-muted-foreground truncate">{file.path}</p>
+                <div key={file.id} className="page-games-game__file-row">
+                  <div className="page-games-game__file-info">
+                    <HardDrive className="page-games-game__file-icon" />
+                    <div className="page-games-game__min-width-0">
+                      <p className="page-games-game__font-medium-truncate">{file.filename}</p>
+                      <p className="page-games-game__file-path">{file.path}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0 ml-3">
+                  <div className="page-games-game__file-actions">
                     {file.sizeBytes && (
-                      <span className="text-xs text-muted-foreground">
+                      <span className="cmp-appsidebar__muted-xs">
                         {formatBytes(file.sizeBytes)}
                       </span>
                     )}
                     {file.fileFormat && (
-                      <Badge variant="outline" className="text-[10px]">
+                      <Badge variant="outline" className="page-games-game__text-10px">
                         {file.fileFormat.toUpperCase()}
                       </Badge>
                     )}
-                    <Badge className={`text-[10px] ${versionBadgeColor(file.versionStatus)}`}>
+                    <Badge
+                      className={`page-games-game__text-10px ${versionBadgeColor(file.versionStatus)}`}
+                    >
                       {file.versionStatus}
                       {file.knownVersion && ` v${file.knownVersion}`}
                     </Badge>
@@ -618,8 +605,8 @@ export default function GamePage({ id }: { id: string }) {
             </div>
           </CardContent>
         ) : (
-          <CardContent className="py-4">
-            <p className="text-sm text-muted-foreground text-center">
+          <CardContent className="page-downloaders__padding-y-4">
+            <p className="page-games-game__empty-text">
               No files imported yet. Run a library scan or search to find this game.
             </p>
           </CardContent>
@@ -645,18 +632,18 @@ export default function GamePage({ id }: { id: string }) {
           <DialogHeader>
             <DialogTitle>Remove {game.title}?</DialogTitle>
             <DialogDescription>
-              This will remove the game from your library and delete all associated
-              data (wanted status, download history, search history).
+              This will remove the game from your library and delete all associated data (wanted
+              status, download history, search history).
             </DialogDescription>
           </DialogHeader>
           {game.files.length > 0 && (
-            <div className="flex items-center gap-2 py-2">
+            <div className="page-games-game__transfer-row">
               <Checkbox
                 id="delete-files"
                 checked={deleteFiles}
                 onCheckedChange={(checked) => setDeleteFiles(checked === true)}
               />
-              <Label htmlFor="delete-files" className="text-sm">
+              <Label htmlFor="delete-files" className="page-games-game__text-sm">
                 Also delete {game.files.length} file{game.files.length !== 1 ? "s" : ""} from disk
               </Label>
             </div>

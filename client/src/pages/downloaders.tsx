@@ -191,70 +191,63 @@ export default function DownloadersPage() {
     }
   };
 
-  const typeLabel = (type: string) =>
-    CLIENT_TYPES.find((t) => t.value === type)?.label ?? type;
+  const typeLabel = (type: string) => CLIENT_TYPES.find((t) => t.value === type)?.label ?? type;
 
   return (
-    <div className="p-6 space-y-4 overflow-y-auto h-full">
-      <div className="flex items-center justify-between">
+    <div className="page-downloaders__page">
+      <div className="page-dashboard__stat-row">
         <div>
-          <h1 className="text-2xl font-bold">Download Clients</h1>
-          <p className="text-muted-foreground">Configure torrent and Usenet download clients</p>
+          <h1 className="page-auth-login__text-2xl-font-bold">Download Clients</h1>
+          <p className="page-downloaders__text-muted-foreground">Configure torrent and Usenet download clients</p>
         </div>
         <Button onClick={openCreate}>
-          <Plus className="h-4 w-4 mr-2" />
+          <Plus className="page-downloaders__height-4-width-4-margin-right-2" />
           Add Client
         </Button>
       </div>
 
-      {isLoading && <p className="text-muted-foreground text-sm">Loading...</p>}
+      {isLoading && <p className="page-downloaders__muted-text">Loading...</p>}
 
       {!isLoading && clients.length === 0 && (
         <Card>
-          <CardContent className="py-12 text-center">
-            <HardDrive className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
-            <p className="font-medium mb-1">No download clients configured</p>
-            <p className="text-sm text-muted-foreground mb-4">
-              Add qBittorrent, Transmission, or another supported client.
-            </p>
+          <CardContent className="page-downloaders__text-center-padding-y-12">
+            <HardDrive className="page-downloaders__empty-icon" />
+            <p className="page-downloaders__font-medium-margin-bottom-1">No download clients configured</p>
+            <p className="page-downloaders__muted-text-spaced">Add qBittorrent, Transmission, or another supported client.</p>
             <Button onClick={openCreate}>
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="page-downloaders__height-4-width-4-margin-right-2" />
               Add Client
             </Button>
           </CardContent>
         </Card>
       )}
 
-      <div className="space-y-2">
+      <div className="cmp-loadingfallback__space-y-2">
         {clients.map((client) => {
           const testResult = testResults[client.id];
           return (
             <Card key={client.id}>
-              <CardContent className="py-4">
-                <div className="flex items-center gap-4">
+              <CardContent className="page-downloaders__padding-y-4">
+                <div className="cmp-header__flex-gap-4-items-center">
                   <Switch
                     checked={client.enabled}
-                    onCheckedChange={(enabled) =>
-                      toggleMutation.mutate({ id: client.id, enabled })
-                    }
+                    onCheckedChange={(enabled) => toggleMutation.mutate({ id: client.id, enabled })}
                   />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{client.name}</span>
-                      <Badge variant="outline" className="text-xs">
+                  <div className="cmp-igdbsearchmodal__min-width-0-flex-1">
+                    <div className="cmp-appsidebar__flex-gap-2-items-center">
+                      <span className="page-downloaders__font-medium">{client.name}</span>
+                      <Badge variant="outline" className="app-common__text-xs">
                         {typeLabel(client.type)}
                       </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground truncate">{client.url}</p>
+                    <p className="page-downloaders__muted-text-truncate">{client.url}</p>
                     {testResult && (
-                      <p
-                        className={`text-xs mt-1 ${testResult.success ? "text-green-500" : "text-destructive"}`}
-                      >
+                      <p className={testResult.success ? "page-downloaders__status-text-success" : "page-downloaders__status-text-error"}>
                         {testResult.success ? "✓" : "✗"} {testResult.message}
                       </p>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="page-downloaders__actions-row">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -262,22 +255,22 @@ export default function DownloadersPage() {
                       disabled={testMutation.isPending}
                     >
                       {testResult?.success === true ? (
-                        <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
+                        <CheckCircle className="page-downloaders__status-icon-success" />
                       ) : testResult?.success === false ? (
-                        <XCircle className="h-4 w-4 text-destructive mr-1" />
+                        <XCircle className="page-downloaders__status-icon-error" />
                       ) : null}
                       Test
                     </Button>
                     <Button variant="ghost" size="icon" onClick={() => openEdit(client)}>
-                      <Pencil className="h-4 w-4" />
+                      <Pencil className="cmp-searchbar__height-4-width-4" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="text-destructive hover:text-destructive"
+                      className="page-downloaders__text-destructive"
                       onClick={() => setDeleteId(client.id)}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="cmp-searchbar__height-4-width-4" />
                     </Button>
                   </div>
                 </div>
@@ -293,9 +286,9 @@ export default function DownloadersPage() {
           <DialogHeader>
             <DialogTitle>{editingId ? "Edit Client" : "Add Download Client"}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
+          <div className="cmp-loadingfallback__space-y-3">
+            <div className="page-downloaders__grid-gap-3-grid-cols-2">
+              <div className="app-common__stack-xs">
                 <Label>Name</Label>
                 <Input
                   value={form.name}
@@ -303,12 +296,9 @@ export default function DownloadersPage() {
                   placeholder="My qBittorrent"
                 />
               </div>
-              <div className="space-y-1">
+              <div className="app-common__stack-xs">
                 <Label>Type</Label>
-                <Select
-                  value={form.type}
-                  onValueChange={(v) => setForm({ ...form, type: v })}
-                >
+                <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -322,19 +312,20 @@ export default function DownloadersPage() {
                 </Select>
               </div>
             </div>
-            <div className="space-y-1">
+            <div className="app-common__stack-xs">
               <Label>URL</Label>
               <Input
                 value={form.url}
                 onChange={(e) => setForm({ ...form, url: e.target.value })}
                 placeholder="http://qbittorrent:8080"
               />
-              <p className="text-xs text-muted-foreground">
-                In Docker, use the container name (e.g. <code>http://qbittorrent:8080</code>), not an IP address.
+              <p className="cmp-appsidebar__muted-xs">
+                In Docker, use the container name (e.g. <code>http://qbittorrent:8080</code>), not
+                an IP address.
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
+            <div className="page-downloaders__grid-gap-3-grid-cols-2">
+              <div className="app-common__stack-xs">
                 <Label>Username</Label>
                 <Input
                   value={form.username}
@@ -342,7 +333,7 @@ export default function DownloadersPage() {
                   placeholder="admin"
                 />
               </div>
-              <div className="space-y-1">
+              <div className="app-common__stack-xs">
                 <Label>Password</Label>
                 <Input
                   type="password"
@@ -352,7 +343,7 @@ export default function DownloadersPage() {
                 />
               </div>
             </div>
-            <div className="space-y-1">
+            <div className="app-common__stack-xs">
               <Label>Default download path (optional)</Label>
               <Input
                 value={form.downloadPath}
@@ -360,7 +351,7 @@ export default function DownloadersPage() {
                 placeholder="/downloads"
               />
             </div>
-            <div className="flex items-center gap-2">
+            <div className="cmp-appsidebar__flex-gap-2-items-center">
               <Switch
                 checked={form.enabled}
                 onCheckedChange={(v) => setForm({ ...form, enabled: v })}
@@ -392,7 +383,7 @@ export default function DownloadersPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive hover:bg-destructive/90"
+              className="page-downloaders__danger-button-hover"
               onClick={() => deleteId !== null && deleteMutation.mutate(deleteId)}
             >
               Delete

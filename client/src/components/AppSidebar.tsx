@@ -82,10 +82,7 @@ interface AppSidebarProps {
   onNavigate?: (url: string) => void;
 }
 
-export default function AppSidebar({
-  activeItem = "/",
-  onNavigate,
-}: AppSidebarProps) {
+export default function AppSidebar({ activeItem = "/", onNavigate }: AppSidebarProps) {
   const { logout, user } = useAuth();
 
   const handleNavigation = (url: string) => {
@@ -94,11 +91,11 @@ export default function AppSidebar({
 
   return (
     <Sidebar data-testid="sidebar-main">
-      <SidebarHeader className="p-4">
-        <div className="flex items-center gap-2">
+      <SidebarHeader className="cmp-appsidebar__padding-4">
+        <div className="cmp-appsidebar__flex-gap-2-items-center">
           <div>
-            <span className="truncate font-semibold">Preservarr</span>
-            <p className="text-xs text-muted-foreground">ROM Management</p>
+            <span className="cmp-appsidebar__font-semibold-truncate">Preservarr</span>
+            <p className="cmp-appsidebar__muted-xs">ROM Management</p>
           </div>
         </div>
       </SidebarHeader>
@@ -117,9 +114,9 @@ export default function AppSidebar({
                   >
                     <button
                       onClick={() => handleNavigation(item.url)}
-                      className="flex items-center gap-2 w-full"
+                      className="cmp-appsidebar__platform-button hover-elevate active-elevate"
                     >
-                      <item.icon className="w-4 h-4" />
+                      <item.icon className="cmp-appsidebar__height-4-width-4" />
                       <span>{item.title}</span>
                     </button>
                   </SidebarMenuButton>
@@ -142,9 +139,9 @@ export default function AppSidebar({
                   >
                     <button
                       onClick={() => handleNavigation(item.url)}
-                      className="flex items-center gap-2 w-full"
+                      className="cmp-appsidebar__platform-button hover-elevate active-elevate"
                     >
-                      <item.icon className="w-4 h-4" />
+                      <item.icon className="cmp-appsidebar__height-4-width-4" />
                       <span>{item.title}</span>
                     </button>
                   </SidebarMenuButton>
@@ -154,9 +151,9 @@ export default function AppSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <div className="flex-1" />
-        <div className="border-t border-[#374151]/40 mx-2 mb-2" />
-        <div className="flex items-center justify-center gap-2 pb-2 text-xs text-gray-400">
+        <div className="cmp-appsidebar__flex-1" />
+        <div className="cmp-appsidebar__footer-separator" />
+        <div className="cmp-appsidebar__footer-meta">
           <span>Preservarr v{pkg.version}</span>
         </div>
       </SidebarContent>
@@ -167,19 +164,17 @@ export default function AppSidebar({
             <SidebarMenuButton
               size="lg"
               onClick={() => logout()}
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground cursor-pointer w-full"
+              className="cmp-appsidebar__width-full-cursor-pointer hover-elevate active-elevate"
               tooltip="Log out"
             >
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                <User className="size-4" />
+              <div className="cmp-appsidebar__logo-badge">
+                <User className="cmp-appsidebar__size-4" />
               </div>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">
-                  {user?.username || "User"}
-                </span>
-                <span className="truncate text-xs">Logged in</span>
+              <div className="cmp-appsidebar__game-meta">
+                <span className="cmp-appsidebar__font-semibold-truncate">{user?.username || "User"}</span>
+                <span className="cmp-appsidebar__text-xs-truncate">Logged in</span>
               </div>
-              <LogOut className="ml-auto size-4" />
+              <LogOut className="cmp-appsidebar__margin-left-auto-size-4" />
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

@@ -75,28 +75,32 @@ export default function SetupPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4 gap-6">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="mx-auto bg-primary/10 p-3 rounded-full w-fit mb-2">
-            <ShieldCheck className="h-8 w-8 text-primary" />
+    <div className="page-auth-setup__screen">
+      <Card className="page-auth-login__max-width-md-width-full">
+        <CardHeader className="page-auth-login__text-center">
+          <div className="page-auth-setup__logo-wrap">
+            <ShieldCheck className="page-auth-setup__text-primary-height-8-width-8" />
           </div>
-          <CardTitle className="text-2xl font-bold">Initial Setup</CardTitle>
+          <CardTitle className="page-auth-login__text-2xl-font-bold">Initial Setup</CardTitle>
           <CardDescription>Create your admin account to get started</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="page-auth-login__space-y-4">
               <FormField
                 control={form.control}
                 name="username"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Username</FormLabel>
-                    <div className="relative">
-                      <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <div className="page-auth-login__relative">
+                      <User className="page-auth-login__input-icon" />
                       <FormControl>
-                        <Input className="pl-9" placeholder="Choose a username" {...field} />
+                        <Input
+                          className="cmp-igdbsearchmodal__padding-left-9"
+                          placeholder="Choose a username"
+                          {...field}
+                        />
                       </FormControl>
                     </div>
                     <FormMessage />
@@ -109,12 +113,12 @@ export default function SetupPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Password</FormLabel>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <div className="page-auth-login__relative">
+                      <Lock className="page-auth-login__input-icon" />
                       <FormControl>
                         <Input
                           type="password"
-                          className="pl-9"
+                          className="cmp-igdbsearchmodal__padding-left-9"
                           placeholder="Choose a password"
                           {...field}
                         />
@@ -130,12 +134,12 @@ export default function SetupPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Confirm Password</FormLabel>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <div className="page-auth-login__relative">
+                      <Lock className="page-auth-login__input-icon" />
                       <FormControl>
                         <Input
                           type="password"
-                          className="pl-9"
+                          className="cmp-igdbsearchmodal__padding-left-9"
                           placeholder="Confirm your password"
                           {...field}
                         />
@@ -148,7 +152,7 @@ export default function SetupPage() {
 
               <Button
                 type="submit"
-                className="w-full"
+                className="page-auth-login__width-full"
                 disabled={setupMutation.isPending}
               >
                 {setupMutation.isPending ? "Creating Account..." : "Create Account"}

@@ -1,11 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -59,7 +54,11 @@ export default function IgdbSearchModal({
       const data = await res.json();
       setResults(data);
     } catch {
-      toast({ title: "Search failed", description: "Could not search IGDB. Check your credentials in Settings.", variant: "destructive" });
+      toast({
+        title: "Search failed",
+        description: "Could not search IGDB. Check your credentials in Settings.",
+        variant: "destructive",
+      });
     } finally {
       setSearching(false);
     }
@@ -81,8 +80,7 @@ export default function IgdbSearchModal({
     },
   });
 
-  const isAlreadyAdded = (igdbId: number) =>
-    existingIgdbIds.has(igdbId) || importedIds.has(igdbId);
+  const isAlreadyAdded = (igdbId: number) => existingIgdbIds.has(igdbId) || importedIds.has(igdbId);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
@@ -93,87 +91,85 @@ export default function IgdbSearchModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+      <DialogContent className="cmp-igdbsearchmodal__dialog-content">
         <DialogHeader>
           <DialogTitle>Add Games — {platformName}</DialogTitle>
         </DialogHeader>
 
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <div className="cmp-igdbsearchmodal__flex-gap-2">
+          <div className="cmp-igdbsearchmodal__flex-1-relative">
+            <Search className="cmp-igdbsearchmodal__input-icon" />
             <Input
               placeholder="Search IGDB for games..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="pl-9"
+              className="cmp-igdbsearchmodal__padding-left-9"
               autoFocus
             />
           </div>
           <Button onClick={handleSearch} disabled={searching || !query.trim()}>
-            {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
+            {searching ? <Loader2 className="cmp-igdbsearchmodal__height-4-width-4-animate-spin" /> : "Search"}
           </Button>
         </div>
 
-        <ScrollArea className="flex-1 min-h-0">
+        <ScrollArea className="cmp-igdbsearchmodal__min-height-0-flex-1">
           {searching ? (
-            <div className="space-y-3 py-2">
+            <div className="cmp-igdbsearchmodal__padding-y-2-space-y-3">
               {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="flex gap-3 items-start">
-                  <Skeleton className="w-12 h-16 rounded shrink-0" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-4 w-48" />
-                    <Skeleton className="h-3 w-32" />
+                <div key={i} className="cmp-igdbsearchmodal__flex-gap-3-items-start">
+                  <Skeleton className="cmp-igdbsearchmodal__result-thumb" />
+                  <div className="cmp-igdbsearchmodal__flex-1-space-y-2">
+                    <Skeleton className="cmp-igdbsearchmodal__height-4-width-48" />
+                    <Skeleton className="cmp-igdbsearchmodal__height-3-width-32" />
                   </div>
                 </div>
               ))}
             </div>
           ) : results.length > 0 ? (
-            <div className="space-y-1 py-2">
+            <div className="cmp-igdbsearchmodal__padding-y-2-space-y-1">
               {results.map((game) => {
                 const added = isAlreadyAdded(game.igdbId);
-                const importing = importMutation.isPending && importMutation.variables === game.igdbId;
+                const importing =
+                  importMutation.isPending && importMutation.variables === game.igdbId;
 
                 return (
-                  <div
-                    key={game.igdbId}
-                    className="flex gap-3 items-start p-2 rounded-md hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="w-12 h-16 rounded overflow-hidden bg-muted shrink-0">
+                  <div key={game.igdbId} className="cmp-igdbsearchmodal__result-card">
+                    <div className="cmp-igdbsearchmodal__thumb-empty">
                       {game.coverUrl ? (
                         <img
                           src={game.coverUrl}
                           alt={game.name}
-                          className="w-full h-full object-cover"
+                          className="cmp-igdbsearchmodal__cover-image"
                           loading="lazy"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Gamepad2 className="h-4 w-4 text-muted-foreground" />
+                        <div className="cmp-igdbsearchmodal__center-content">
+                          <Gamepad2 className="cmp-igdbsearchmodal__icon-muted" />
                         </div>
                       )}
                     </div>
 
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium leading-tight truncate">
-                        {game.name}
-                      </p>
-                      <div className="flex items-center gap-2 mt-0.5">
+                    <div className="cmp-igdbsearchmodal__min-width-0-flex-1">
+                      <p className="cmp-igdbsearchmodal__result-title">{game.name}</p>
+                      <div className="cmp-igdbsearchmodal__meta-row">
                         {game.releaseDate && (
-                          <span className="text-xs text-muted-foreground">
+                          <span className="cmp-appsidebar__muted-xs">
                             {new Date(game.releaseDate).getFullYear()}
                           </span>
                         )}
                         {game.rating && (
-                          <span className="text-xs text-muted-foreground">
-                            {game.rating}%
-                          </span>
+                          <span className="cmp-appsidebar__muted-xs">{game.rating}%</span>
                         )}
                       </div>
                       {game.genres.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1">
+                        <div className="cmp-igdbsearchmodal__result-tags">
                           {game.genres.slice(0, 3).map((g) => (
-                            <Badge key={g} variant="secondary" className="text-[10px] px-1.5 py-0">
+                            <Badge
+                              key={g}
+                              variant="secondary"
+                              className="cmp-igdbsearchmodal__text-10px-padding-x-1-5-padding-y-0"
+                            >
                               {g}
                             </Badge>
                           ))}
@@ -186,18 +182,18 @@ export default function IgdbSearchModal({
                       variant={added ? "ghost" : "default"}
                       disabled={added || importing}
                       onClick={() => importMutation.mutate(game.igdbId)}
-                      className="shrink-0"
+                      className="cmp-igdbsearchmodal__shrink-0"
                     >
                       {added ? (
                         <>
-                          <Check className="h-3.5 w-3.5 mr-1" />
+                          <Check className="cmp-igdbsearchmodal__height-3-5-width-3-5-margin-right-1" />
                           Added
                         </>
                       ) : importing ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        <Loader2 className="cmp-igdbsearchmodal__inline-spinner" />
                       ) : (
                         <>
-                          <Plus className="h-3.5 w-3.5 mr-1" />
+                          <Plus className="cmp-igdbsearchmodal__height-3-5-width-3-5-margin-right-1" />
                           Add
                         </>
                       )}
@@ -207,11 +203,11 @@ export default function IgdbSearchModal({
               })}
             </div>
           ) : query && !searching ? (
-            <div className="text-center py-8 text-sm text-muted-foreground">
+            <div className="cmp-igdbsearchmodal__empty-state">
               No results found. Try a different search term.
             </div>
           ) : (
-            <div className="text-center py-8 text-sm text-muted-foreground">
+            <div className="cmp-igdbsearchmodal__empty-state">
               Search IGDB to find and add games to {platformName}.
             </div>
           )}

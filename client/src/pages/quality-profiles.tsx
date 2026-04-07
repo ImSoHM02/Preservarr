@@ -23,14 +23,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import {
-  SlidersHorizontal,
-  Plus,
-  Pencil,
-  Trash2,
-  GripVertical,
-  X,
-} from "lucide-react";
+import { SlidersHorizontal, Plus, Pencil, Trash2, GripVertical, X } from "lucide-react";
 
 type Platform = {
   id: number;
@@ -103,8 +96,9 @@ export default function QualityProfilesPage() {
     queryKey: ["/api/platforms"],
   });
 
-  const enabledPlatforms = platforms?.filter((p: Platform & { enabled?: boolean }) =>
-    (p as Platform & { enabled?: boolean }).enabled !== false
+  const enabledPlatforms = platforms?.filter(
+    (p: Platform & { enabled?: boolean }) =>
+      (p as Platform & { enabled?: boolean }).enabled !== false
   );
 
   const createMutation = useMutation({
@@ -118,7 +112,11 @@ export default function QualityProfilesPage() {
       toast({ title: "Profile created" });
     },
     onError: (error: Error) => {
-      toast({ title: "Failed to create profile", description: error.message, variant: "destructive" });
+      toast({
+        title: "Failed to create profile",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -133,7 +131,11 @@ export default function QualityProfilesPage() {
       toast({ title: "Profile updated" });
     },
     onError: (error: Error) => {
-      toast({ title: "Failed to update profile", description: error.message, variant: "destructive" });
+      toast({
+        title: "Failed to update profile",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -146,7 +148,11 @@ export default function QualityProfilesPage() {
       toast({ title: "Profile deleted" });
     },
     onError: (error: Error) => {
-      toast({ title: "Failed to delete profile", description: error.message, variant: "destructive" });
+      toast({
+        title: "Failed to delete profile",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -220,18 +226,18 @@ export default function QualityProfilesPage() {
   // Get format suggestions based on selected platform
   const selectedPlatformSlug = enabledPlatforms?.find((p) => p.id === form.platformId)?.slug;
   const suggestedFormats = selectedPlatformSlug
-    ? PLATFORM_FORMATS[selectedPlatformSlug] ?? []
+    ? (PLATFORM_FORMATS[selectedPlatformSlug] ?? [])
     : [];
 
   const saving = createMutation.isPending || updateMutation.isPending;
 
   if (isLoading) {
     return (
-      <div className="p-6 space-y-4">
-        <Skeleton className="h-8 w-48" />
-        <div className="space-y-3">
+      <div className="page-platforms-platform__padding-6-space-y-4">
+        <Skeleton className="page-platforms-platform__height-8-width-48" />
+        <div className="cmp-loadingfallback__space-y-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-24 w-full rounded-lg" />
+            <Skeleton key={i} className="page-quality-profiles__height-24-width-full-rounded-lg" />
           ))}
         </div>
       </div>
@@ -239,53 +245,53 @@ export default function QualityProfilesPage() {
   }
 
   return (
-    <div className="p-6 space-y-4 overflow-auto h-full">
-      <div className="flex items-center justify-between">
+    <div className="page-platforms-platform__page">
+      <div className="page-dashboard__stat-row">
         <div>
-          <h2 className="text-lg font-semibold">Quality Profiles</h2>
-          <p className="text-sm text-muted-foreground">
+          <h2 className="page-platforms-index__text-lg-font-semibold">Quality Profiles</h2>
+          <p className="page-downloads__muted-text">
             Define format and region preferences per platform for search result scoring.
           </p>
         </div>
         <Button onClick={openCreate}>
-          <Plus className="h-4 w-4 mr-2" />
+          <Plus className="page-downloaders__height-4-width-4-margin-right-2" />
           New Profile
         </Button>
       </div>
 
       {!profiles || profiles.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <SlidersHorizontal className="h-12 w-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold mb-1">No Quality Profiles</h3>
-          <p className="text-sm text-muted-foreground mb-4 max-w-md">
+        <div className="page-quality-profiles__empty-state">
+          <SlidersHorizontal className="page-quality-profiles__empty-icon" />
+          <h3 className="page-quality-profiles__empty-title">No Quality Profiles</h3>
+          <p className="page-quality-profiles__empty-description">
             Create a quality profile to control format preferences, region priority, and seeder
             requirements when searching for ROMs.
           </p>
           <Button onClick={openCreate}>
-            <Plus className="h-4 w-4 mr-2" />
+            <Plus className="page-downloaders__height-4-width-4-margin-right-2" />
             Create Profile
           </Button>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="cmp-loadingfallback__space-y-3">
           {profiles.map((profile) => (
             <Card key={profile.id}>
-              <CardContent className="py-4 flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-medium text-sm">{profile.name}</h3>
+              <CardContent className="page-quality-profiles__card-layout">
+                <div className="cmp-igdbsearchmodal__min-width-0-flex-1">
+                  <div className="page-quality-profiles__card-title-row">
+                    <h3 className="page-quality-profiles__text-sm-font-medium">{profile.name}</h3>
                     {profile.platform && (
-                      <Badge variant="secondary" className="text-[10px]">
+                      <Badge variant="secondary" className="page-games-game__text-10px">
                         {profile.platform.name}
                       </Badge>
                     )}
                     {profile.upgradeExisting && (
-                      <Badge variant="outline" className="text-[10px]">
+                      <Badge variant="outline" className="page-games-game__text-10px">
                         Auto-upgrade
                       </Badge>
                     )}
                   </div>
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                  <div className="page-quality-profiles__meta-row">
                     <span>
                       Formats:{" "}
                       {profile.preferredFormats.length > 0
@@ -301,9 +307,9 @@ export default function QualityProfilesPage() {
                     <span>Min seeders: {profile.minSeeders}</span>
                   </div>
                 </div>
-                <div className="flex gap-1 shrink-0">
+                <div className="page-quality-profiles__flex-gap-1-shrink-0">
                   <Button variant="ghost" size="icon" onClick={() => openEdit(profile)}>
-                    <Pencil className="h-3.5 w-3.5" />
+                    <Pencil className="page-games-game__height-3-5-width-3-5" />
                   </Button>
                   <Button
                     variant="ghost"
@@ -311,7 +317,7 @@ export default function QualityProfilesPage() {
                     onClick={() => deleteMutation.mutate(profile.id)}
                     disabled={deleteMutation.isPending}
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 className="page-games-game__height-3-5-width-3-5" />
                   </Button>
                 </div>
               </CardContent>
@@ -322,14 +328,14 @@ export default function QualityProfilesPage() {
 
       {/* Create / Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="page-quality-profiles__max-width-lg">
           <DialogHeader>
             <DialogTitle>{editingId ? "Edit" : "New"} Quality Profile</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <div className="page-auth-login__space-y-4">
             {/* Name */}
-            <div className="space-y-1.5">
+            <div className="page-downloads__space-y-1-5">
               <Label>Name</Label>
               <Input
                 placeholder="e.g. Switch Preferred"
@@ -339,13 +345,11 @@ export default function QualityProfilesPage() {
             </div>
 
             {/* Platform */}
-            <div className="space-y-1.5">
+            <div className="page-downloads__space-y-1-5">
               <Label>Platform</Label>
               <Select
                 value={form.platformId?.toString() ?? ""}
-                onValueChange={(v) =>
-                  setForm((prev) => ({ ...prev, platformId: parseInt(v, 10) }))
-                }
+                onValueChange={(v) => setForm((prev) => ({ ...prev, platformId: parseInt(v, 10) }))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a platform" />
@@ -361,24 +365,21 @@ export default function QualityProfilesPage() {
             </div>
 
             {/* Preferred Formats */}
-            <div className="space-y-1.5">
+            <div className="page-downloads__space-y-1-5">
               <Label>Preferred Formats (priority order)</Label>
-              <div className="flex flex-wrap gap-1.5 min-h-[32px]">
+              <div className="page-quality-profiles__selected-tags">
                 {form.preferredFormats.map((fmt, i) => (
-                  <Badge key={fmt} variant="secondary" className="gap-1 pr-1">
-                    <span className="text-[10px] text-muted-foreground mr-0.5">{i + 1}.</span>
+                  <Badge key={fmt} variant="secondary" className="page-quality-profiles__gap-1-padding-right-1">
+                    <span className="page-quality-profiles__rank-label">{i + 1}.</span>
                     {fmt}
-                    <button
-                      onClick={() => removeFormat(fmt)}
-                      className="ml-0.5 hover:text-destructive"
-                    >
-                      <X className="h-3 w-3" />
+                    <button onClick={() => removeFormat(fmt)} className="page-quality-profiles__text-destructive-margin-left-0-5">
+                      <X className="page-quality-profiles__height-3-width-3" />
                     </button>
                   </Badge>
                 ))}
               </div>
               {suggestedFormats.length > 0 && (
-                <div className="flex flex-wrap gap-1">
+                <div className="page-quality-profiles__flex-gap-1-flex-wrap">
                   {suggestedFormats
                     .filter((f) => !form.preferredFormats.includes(f))
                     .map((fmt) => (
@@ -386,7 +387,7 @@ export default function QualityProfilesPage() {
                         key={fmt}
                         variant="outline"
                         size="sm"
-                        className="h-6 text-xs px-2"
+                        className="page-quality-profiles__text-xs-height-6-padding-x-2"
                         onClick={() => addFormat(fmt)}
                       >
                         + {fmt}
@@ -394,7 +395,7 @@ export default function QualityProfilesPage() {
                     ))}
                 </div>
               )}
-              <div className="flex gap-2">
+              <div className="cmp-igdbsearchmodal__flex-gap-2">
                 <Input
                   placeholder="Custom format..."
                   value={formatInput}
@@ -405,12 +406,12 @@ export default function QualityProfilesPage() {
                       addFormat(formatInput);
                     }
                   }}
-                  className="h-8 text-xs"
+                  className="page-quality-profiles__text-xs-height-8"
                 />
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8"
+                  className="page-quality-profiles__height-8"
                   onClick={() => addFormat(formatInput)}
                   disabled={!formatInput.trim()}
                 >
@@ -420,38 +421,35 @@ export default function QualityProfilesPage() {
             </div>
 
             {/* Preferred Regions */}
-            <div className="space-y-1.5">
+            <div className="page-downloads__space-y-1-5">
               <Label>Preferred Regions (priority order)</Label>
-              <div className="space-y-1">
+              <div className="app-common__stack-xs">
                 {form.preferredRegions.map((region, i) => (
-                  <div key={region} className="flex items-center gap-1.5 text-sm">
-                    <span className="text-xs text-muted-foreground w-5">{i + 1}.</span>
-                    <span className="flex-1">{region}</span>
+                  <div key={region} className="page-quality-profiles__region-row">
+                    <span className="page-quality-profiles__region-rank">{i + 1}.</span>
+                    <span className="cmp-appsidebar__flex-1">{region}</span>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-6 w-6"
+                      className="page-quality-profiles__height-6-width-6"
                       onClick={() => moveRegion(i, -1)}
                       disabled={i === 0}
                     >
-                      <GripVertical className="h-3 w-3 rotate-90" />
+                      <GripVertical className="page-quality-profiles__height-3-width-3-rotate-90" />
                     </Button>
-                    <button
-                      onClick={() => toggleRegion(region)}
-                      className="text-muted-foreground hover:text-destructive"
-                    >
-                      <X className="h-3.5 w-3.5" />
+                    <button onClick={() => toggleRegion(region)} className="page-quality-profiles__remove-region-button">
+                      <X className="page-games-game__height-3-5-width-3-5" />
                     </button>
                   </div>
                 ))}
               </div>
-              <div className="flex flex-wrap gap-1">
+              <div className="page-quality-profiles__flex-gap-1-flex-wrap">
                 {COMMON_REGIONS.filter((r) => !form.preferredRegions.includes(r)).map((region) => (
                   <Button
                     key={region}
                     variant="outline"
                     size="sm"
-                    className="h-6 text-xs px-2"
+                    className="page-quality-profiles__text-xs-height-6-padding-x-2"
                     onClick={() => toggleRegion(region)}
                   >
                     + {region}
@@ -461,7 +459,7 @@ export default function QualityProfilesPage() {
             </div>
 
             {/* Min Seeders */}
-            <div className="space-y-1.5">
+            <div className="page-downloads__space-y-1-5">
               <Label>Minimum Seeders</Label>
               <Input
                 type="number"
@@ -473,12 +471,12 @@ export default function QualityProfilesPage() {
                     minSeeders: Math.max(0, parseInt(e.target.value, 10) || 0),
                   }))
                 }
-                className="w-24"
+                className="page-quality-profiles__width-24"
               />
             </div>
 
             {/* Auto-upgrade */}
-            <div className="flex items-center gap-3">
+            <div className="app-common__row-gap-3">
               <Switch
                 checked={form.upgradeExisting}
                 onCheckedChange={(checked) =>
@@ -487,7 +485,7 @@ export default function QualityProfilesPage() {
               />
               <div>
                 <Label>Auto-upgrade existing files</Label>
-                <p className="text-xs text-muted-foreground">
+                <p className="cmp-appsidebar__muted-xs">
                   Automatically search for better quality releases when available.
                 </p>
               </div>
@@ -498,10 +496,7 @@ export default function QualityProfilesPage() {
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
               Cancel
             </Button>
-            <Button
-              onClick={handleSave}
-              disabled={!form.name || !form.platformId || saving}
-            >
+            <Button onClick={handleSave} disabled={!form.name || !form.platformId || saving}>
               {saving ? "Saving..." : editingId ? "Save Changes" : "Create Profile"}
             </Button>
           </DialogFooter>

@@ -22,17 +22,14 @@ export default function EmptyState({
   className,
 }: EmptyStateProps) {
   return (
-    <div
-      className={cn("flex flex-col items-center justify-center py-16 px-4 text-center", className)}
-      data-testid="empty-state"
-    >
-      <div className="bg-muted/50 p-6 rounded-full mb-6 ring-1 ring-border">
-        <Icon className="h-10 w-10 text-muted-foreground" aria-hidden="true" />
+    <div className={cn("cmp-emptystate__layout", className)} data-testid="empty-state">
+      <div className="cmp-emptystate__panel">
+        <Icon className="cmp-emptystate__icon" aria-hidden="true" />
       </div>
-      <h3 className="text-xl font-semibold mb-2 tracking-tight">{title}</h3>
-      <p className="text-muted-foreground max-w-sm mb-8 text-sm">{description}</p>
+      <h3 className="cmp-emptystate__title">{title}</h3>
+      <p className="cmp-emptystate__description">{description}</p>
       {actionLabel && actionLink && (
-        <Button size="lg" className="font-semibold" asChild>
+        <Button size="lg" className="cmp-emptystate__font-semibold" asChild>
           <Link href={actionLink}>{actionLabel}</Link>
         </Button>
       )}

@@ -65,7 +65,9 @@ export default function IndexersPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [form, setForm] = useState<IndexerFormData>(defaultForm);
-  const [testResults, setTestResults] = useState<Record<number, { success: boolean; message: string }>>({});
+  const [testResults, setTestResults] = useState<
+    Record<number, { success: boolean; message: string }>
+  >({});
 
   const { data: indexers = [], isLoading } = useQuery<Indexer[]>({
     queryKey: ["indexers"],
@@ -196,84 +198,78 @@ export default function IndexersPage() {
   };
 
   return (
-    <div className="p-6 space-y-4 overflow-y-auto h-full">
-      <div className="flex items-center justify-between">
+    <div className="page-downloaders__page">
+      <div className="page-dashboard__stat-row">
         <div>
-          <h1 className="text-2xl font-bold">Indexers</h1>
-          <p className="text-muted-foreground">Manage Torznab indexers for ROM searching</p>
+          <h1 className="page-auth-login__text-2xl-font-bold">Indexers</h1>
+          <p className="page-downloaders__text-muted-foreground">Manage Torznab indexers for ROM searching</p>
         </div>
-        <div className="flex gap-2">
+        <div className="cmp-igdbsearchmodal__flex-gap-2">
           <Button
             variant="outline"
             onClick={() => syncMutation.mutate()}
             disabled={syncMutation.isPending}
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${syncMutation.isPending ? "animate-spin" : ""}`} />
+            <RefreshCw className={syncMutation.isPending ? "page-downloads__spinner" : "page-downloaders__height-4-width-4-margin-right-2"} />
             Sync from Prowlarr
           </Button>
           <Button onClick={openCreate}>
-            <Plus className="h-4 w-4 mr-2" />
+            <Plus className="page-downloaders__height-4-width-4-margin-right-2" />
             Add Indexer
           </Button>
         </div>
       </div>
 
-      {isLoading && (
-        <p className="text-muted-foreground text-sm">Loading indexers...</p>
-      )}
+      {isLoading && <p className="page-downloaders__muted-text">Loading indexers...</p>}
 
       {!isLoading && indexers.length === 0 && (
         <Card>
-          <CardContent className="py-12 text-center">
-            <Database className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
-            <p className="font-medium mb-1">No indexers configured</p>
-            <p className="text-sm text-muted-foreground mb-4">
-              Sync from Prowlarr or add a Torznab indexer manually.
-            </p>
+          <CardContent className="page-downloaders__text-center-padding-y-12">
+            <Database className="page-downloaders__empty-icon" />
+            <p className="page-downloaders__font-medium-margin-bottom-1">No indexers configured</p>
+            <p className="page-downloaders__muted-text-spaced">Sync from Prowlarr or add a Torznab indexer manually.</p>
             <Button onClick={openCreate}>
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="page-downloaders__height-4-width-4-margin-right-2" />
               Add Indexer
             </Button>
           </CardContent>
         </Card>
       )}
 
-      <div className="space-y-2">
+      <div className="cmp-loadingfallback__space-y-2">
         {indexers.map((indexer) => {
           const testResult = testResults[indexer.id];
           return (
             <Card key={indexer.id}>
-              <CardContent className="py-4">
-                <div className="flex items-center gap-4">
+              <CardContent className="page-downloaders__padding-y-4">
+                <div className="cmp-header__flex-gap-4-items-center">
                   <Switch
                     checked={indexer.enabled}
                     onCheckedChange={(enabled) =>
                       toggleEnabledMutation.mutate({ id: indexer.id, enabled })
                     }
                   />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{indexer.name}</span>
-                      <Badge variant="outline" className="text-xs">
+                  <div className="cmp-igdbsearchmodal__min-width-0-flex-1">
+                    <div className="cmp-appsidebar__flex-gap-2-items-center">
+                      <span className="page-downloaders__font-medium">{indexer.name}</span>
+                      <Badge variant="outline" className="app-common__text-xs">
                         {indexer.type}
                       </Badge>
                       {(indexer.categories?.length ?? 0) > 0 && (
-                        <Badge variant="secondary" className="text-xs">
+                        <Badge variant="secondary" className="app-common__text-xs">
                           cats: {indexer.categories?.join(", ")}
                         </Badge>
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground truncate">{indexer.url}</p>
+                    <p className="page-downloaders__muted-text-truncate">{indexer.url}</p>
                     {testResult && (
-                      <p
-                        className={`text-xs mt-1 ${testResult.success ? "text-green-500" : "text-destructive"}`}
-                      >
+                      <p className={testResult.success ? "page-downloaders__status-text-success" : "page-downloaders__status-text-error"}>
                         {testResult.success ? "✓" : "✗"} {testResult.message}
                       </p>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-xs text-muted-foreground">P{indexer.priority}</span>
+                  <div className="page-downloaders__actions-row">
+                    <span className="cmp-appsidebar__muted-xs">P{indexer.priority}</span>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -281,22 +277,22 @@ export default function IndexersPage() {
                       disabled={testMutation.isPending}
                     >
                       {testResult?.success === true ? (
-                        <CheckCircle className="h-4 w-4 text-green-500" />
+                        <CheckCircle className="page-indexers__text-green-500-height-4-width-4" />
                       ) : testResult?.success === false ? (
-                        <XCircle className="h-4 w-4 text-destructive" />
+                        <XCircle className="page-indexers__text-destructive-height-4-width-4" />
                       ) : null}
                       Test
                     </Button>
                     <Button variant="ghost" size="icon" onClick={() => openEdit(indexer)}>
-                      <Pencil className="h-4 w-4" />
+                      <Pencil className="cmp-searchbar__height-4-width-4" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="text-destructive hover:text-destructive"
+                      className="page-downloaders__text-destructive"
                       onClick={() => setDeleteId(indexer.id)}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="cmp-searchbar__height-4-width-4" />
                     </Button>
                   </div>
                 </div>
@@ -312,8 +308,8 @@ export default function IndexersPage() {
           <DialogHeader>
             <DialogTitle>{editingId ? "Edit Indexer" : "Add Indexer"}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1">
+          <div className="cmp-loadingfallback__space-y-3">
+            <div className="app-common__stack-xs">
               <Label>Name</Label>
               <Input
                 value={form.name}
@@ -321,7 +317,7 @@ export default function IndexersPage() {
                 placeholder="My Indexer"
               />
             </div>
-            <div className="space-y-1">
+            <div className="app-common__stack-xs">
               <Label>Torznab URL</Label>
               <Input
                 value={form.url}
@@ -329,7 +325,7 @@ export default function IndexersPage() {
                 placeholder="http://prowlarr:9696/1/api"
               />
             </div>
-            <div className="space-y-1">
+            <div className="app-common__stack-xs">
               <Label>API Key</Label>
               <Input
                 type="password"
@@ -338,8 +334,8 @@ export default function IndexersPage() {
                 placeholder="API key"
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
+            <div className="page-downloaders__grid-gap-3-grid-cols-2">
+              <div className="app-common__stack-xs">
                 <Label>Priority (lower = higher priority)</Label>
                 <Input
                   type="number"
@@ -349,7 +345,7 @@ export default function IndexersPage() {
                   max={100}
                 />
               </div>
-              <div className="space-y-1">
+              <div className="app-common__stack-xs">
                 <Label>Categories (comma-separated)</Label>
                 <Input
                   value={form.categories}
@@ -358,7 +354,7 @@ export default function IndexersPage() {
                 />
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="cmp-appsidebar__flex-gap-2-items-center">
               <Switch
                 checked={form.enabled}
                 onCheckedChange={(v) => setForm({ ...form, enabled: v })}
@@ -390,7 +386,7 @@ export default function IndexersPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive hover:bg-destructive/90"
+              className="page-downloaders__danger-button-hover"
               onClick={() => deleteId !== null && deleteMutation.mutate(deleteId)}
             >
               Delete
