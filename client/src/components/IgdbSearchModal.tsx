@@ -4,7 +4,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -113,7 +112,7 @@ export default function IgdbSearchModal({
           </Button>
         </div>
 
-        <ScrollArea className="cmp-igdbsearchmodal__min-height-0-flex-1">
+        <div className="cmp-igdbsearchmodal__results-scroll">
           {searching ? (
             <div className="cmp-igdbsearchmodal__padding-y-2-space-y-3">
               {Array.from({ length: 5 }).map((_, i) => (
@@ -211,7 +210,7 @@ export default function IgdbSearchModal({
               Search IGDB to find and add games to {platformName}.
             </div>
           )}
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );

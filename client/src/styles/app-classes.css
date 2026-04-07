@@ -111,10 +111,6 @@
     @apply w-32 text-xs;
   }
 
-  .cmp-igdbsearchmodal__dialog-content {
-    @apply max-w-2xl max-h-[85vh] flex flex-col overflow-hidden;
-  }
-
   .cmp-igdbsearchmodal__flex-gap-2 {
     @apply flex gap-2;
   }
@@ -135,8 +131,8 @@
     @apply h-4 w-4 animate-spin;
   }
 
-  .cmp-igdbsearchmodal__min-height-0-flex-1 {
-    @apply flex-1 min-h-0;
+  .cmp-igdbsearchmodal__results-scroll {
+    @apply flex-1 min-h-0 overflow-y-auto pr-1;
   }
 
   .cmp-igdbsearchmodal__padding-y-2-space-y-3 {
@@ -269,10 +265,6 @@
 
   .cmp-loadingfallback__height-4-width-1-2 {
     @apply h-4 w-1/2;
-  }
-
-  .cmp-pathbrowser__dialog-content {
-    @apply max-w-2xl max-h-[85vh] flex flex-col;
   }
 
   .cmp-pathbrowser__height-5-width-5 {
@@ -425,6 +417,114 @@
 
   .page-dashboard__stats-grid {
     @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4;
+  }
+
+  .page-dashboard__ops-kpi-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-4;
+  }
+
+  .page-dashboard__ops-main-grid {
+    @apply grid grid-cols-1 xl:grid-cols-[1.7fr_1fr] gap-4;
+  }
+
+  .page-dashboard__ops-side-stack {
+    @apply flex flex-col gap-4;
+  }
+
+  .page-dashboard__ops-section-title {
+    @apply text-base font-semibold;
+  }
+
+  .page-dashboard__queue-card-content {
+    @apply space-y-3;
+  }
+
+  .page-dashboard__queue-loading-row {
+    @apply h-14 w-full;
+  }
+
+  .page-dashboard__queue-item {
+    @apply border border-border rounded-md p-3 space-y-2;
+  }
+
+  .page-dashboard__queue-item-top {
+    @apply flex items-start justify-between gap-3;
+  }
+
+  .page-dashboard__queue-title {
+    @apply text-sm font-medium line-clamp-1;
+  }
+
+  .page-dashboard__queue-client {
+    @apply text-xs text-muted-foreground;
+  }
+
+  .page-dashboard__queue-progress-row {
+    @apply flex items-center gap-3;
+  }
+
+  .page-dashboard__queue-progress {
+    @apply h-1.5 flex-1;
+  }
+
+  .page-dashboard__queue-progress-value {
+    @apply text-xs font-medium text-muted-foreground min-w-10 text-right;
+  }
+
+  .page-dashboard__ops-side-header {
+    @apply pb-3;
+  }
+
+  .page-dashboard__ops-side-content {
+    @apply space-y-3;
+  }
+
+  .page-dashboard__health-row {
+    @apply flex items-center justify-between text-sm gap-3;
+  }
+
+  .page-dashboard__health-value {
+    @apply text-xs text-muted-foreground;
+  }
+
+  .page-dashboard__health-subtext {
+    @apply text-xs text-muted-foreground;
+  }
+
+  .page-dashboard__quick-actions-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 gap-2;
+  }
+
+  .page-dashboard__quick-actions-grid > button {
+    justify-content: flex-start;
+  }
+
+  .page-dashboard__events-content {
+    @apply space-y-3;
+  }
+
+  .page-dashboard__event-loading-row {
+    @apply h-16 w-full;
+  }
+
+  .page-dashboard__event-row {
+    @apply border border-border rounded-md p-3 space-y-1.5;
+  }
+
+  .page-dashboard__event-row-top {
+    @apply flex items-center justify-between gap-2;
+  }
+
+  .page-dashboard__event-time {
+    @apply text-xs text-muted-foreground;
+  }
+
+  .page-dashboard__event-message {
+    @apply text-sm;
+  }
+
+  .page-dashboard__event-module {
+    @apply text-xs text-muted-foreground;
   }
 
   .page-dashboard__platform-header {
@@ -665,6 +765,14 @@
 
   .page-games-game__result-meta {
     @apply flex gap-3 text-xs text-muted-foreground mt-1;
+  }
+
+  .page-games-game__results-pagination-hint {
+    @apply text-xs text-muted-foreground text-center py-2;
+  }
+
+  .page-games-game__results-pagination-count {
+    @apply text-xs text-muted-foreground;
   }
 
   .page-games-game__height-7-padding-x-2 {
@@ -1604,6 +1712,14 @@
 
   .ui-dialog__content {
     @apply fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg overflow-hidden duration-200 sm:rounded-lg;
+  }
+
+  .ui-dialog__content.cmp-igdbsearchmodal__dialog-content {
+    @apply max-w-2xl max-h-[85vh] flex flex-col;
+  }
+
+  .ui-dialog__content.cmp-pathbrowser__dialog-content {
+    @apply max-w-2xl max-h-[85vh] flex flex-col;
   }
 
   .ui-dialog__overlay {

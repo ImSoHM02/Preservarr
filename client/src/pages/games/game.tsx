@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
@@ -35,7 +35,6 @@ import {
   Tag,
   FileBox,
   Search,
-  Heart,
   ChevronDown,
   ChevronUp,
   Download,
@@ -126,6 +125,8 @@ type DownloadClient = {
   enabled: boolean;
 };
 
+const SEARCH_RESULTS_PAGE_SIZE = 25;
+
 // ─── Search Results Dialog ────────────────────────────────────
 
 function SearchResultsDialog({
@@ -153,6 +154,8 @@ function SearchResultsDialog({
   const [stage, setStage] = useState(stageUsed);
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [sendingLink, setSendingLink] = useState<string | null>(null);
+  const [visibleResultsCount, setVisibleResultsCount] = useState(SEARCH_RESULTS_PAGE_SIZE);
+  const resultsListRef = useRef<HTMLDivElement | null>(null);
 
   const { data: clients = [] } = useQuery<DownloadClient[]>({
     queryKey: ["/api/download-clients"],
@@ -173,6 +176,10 @@ function SearchResultsDialog({
     onSuccess: (data) => {
       setResults(data.results);
       setStage(data.stageUsed);
+      setVisibleResultsCount(SEARCH_RESULTS_PAGE_SIZE);
+      if (resultsListRef.current) {
+        resultsListRef.current.scrollTop = 0;
+      }
     },
     onError: () => toast({ title: "Search failed", variant: "destructive" }),
   });
@@ -210,6 +217,17 @@ function SearchResultsDialog({
 
   const displayed = showAll ? results : results.filter((r) => r.score >= 30);
   const hiddenCount = results.length - displayed.length;
+  const paginatedResults = displayed.slice(0, visibleResultsCount);
+
+  const handleResultsScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    const element = event.currentTarget;
+    const nearBottom = element.scrollTop + element.clientHeight >= element.scrollHeight - 40;
+    if (nearBottom && visibleResultsCount < displayed.length) {
+      setVisibleResultsCount((previous) =>
+        Math.min(previous + SEARCH_RESULTS_PAGE_SIZE, displayed.length)
+      );
+    }
+  };
 
   // Keep dialog-local state aligned with the latest parent search payload.
   useEffect(() => {
@@ -217,7 +235,18 @@ function SearchResultsDialog({
     setResults(initialResults);
     setStage(stageUsed);
     setShowAll(false);
+    setVisibleResultsCount(SEARCH_RESULTS_PAGE_SIZE);
+    if (resultsListRef.current) {
+      resultsListRef.current.scrollTop = 0;
+    }
   }, [open, initialResults, stageUsed]);
+
+  useEffect(() => {
+    setVisibleResultsCount(SEARCH_RESULTS_PAGE_SIZE);
+    if (resultsListRef.current) {
+      resultsListRef.current.scrollTop = 0;
+    }
+  }, [showAll]);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -281,12 +310,16 @@ function SearchResultsDialog({
         )}
 
         {/* Results list */}
-        <div className="page-games-game__results-list">
+        <div
+          ref={resultsListRef}
+          className="page-games-game__results-list"
+          onScroll={handleResultsScroll}
+        >
           {displayed.length === 0 && !researchMutation.isPending && (
             <p className="page-dashboard__empty-message">No results found. Try a different query.</p>
           )}
           {researchMutation.isPending && <p className="page-dashboard__empty-message">Searching...</p>}
-          {displayed.map((r, i) => (
+          {paginatedResults.map((r, i) => (
             <div key={i} className="page-games-game__result-row">
               <div className="page-games-game__result-main">
                 <p className="page-games-game__font-medium-truncate">{r.title}</p>
@@ -313,7 +346,15 @@ function SearchResultsDialog({
               </div>
             </div>
           ))}
+          {displayed.length > visibleResultsCount && (
+            <p className="page-games-game__results-pagination-hint">Scroll down to load more results…</p>
+          )}
         </div>
+        {!researchMutation.isPending && displayed.length > 0 && (
+          <p className="page-games-game__results-pagination-count">
+            Showing {Math.min(visibleResultsCount, displayed.length)} of {displayed.length} results
+          </p>
+        )}
 
         {hiddenCount > 0 && (
           <Button
@@ -347,7 +388,6 @@ function SearchResultsDialog({
 export default function GamePage({ id }: { id: string }) {
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searchStage, setSearchStage] = useState<string | null>(null);
@@ -357,22 +397,6 @@ export default function GamePage({ id }: { id: string }) {
 
   const { data: game, isLoading } = useQuery<GameDetail>({
     queryKey: [`/api/games/${id}`],
-  });
-
-  const wantedMutation = useMutation({
-    mutationFn: () =>
-      apiRequest("POST", `/api/games/${id}/wanted`, { status: "wanted" }).then((r) => r.json()),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/games/${id}`] });
-      toast({ title: "Added to wanted list" });
-    },
-    onError: (err) => {
-      const msg = err instanceof Error ? err.message : "Failed";
-      toast({
-        title: msg.includes("already") ? "Already in wanted list" : msg,
-        variant: "destructive",
-      });
-    },
   });
 
   const searchMutation = useMutation({
@@ -446,17 +470,6 @@ export default function GamePage({ id }: { id: string }) {
           {game.platform && <p className="page-downloads__muted-text">{game.platform.name}</p>}
         </div>
         <div className="page-games-game__flex-gap-2-shrink-0">
-          {!game.wanted && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => wantedMutation.mutate()}
-              disabled={wantedMutation.isPending}
-            >
-              <Heart className="page-downloaders__height-4-width-4-margin-right-2" />
-              Add to Wanted
-            </Button>
-          )}
           <Button
             size="sm"
             onClick={() => searchMutation.mutate()}
