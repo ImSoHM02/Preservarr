@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { getApiErrorDescription, getApiErrorMessage } from "@/lib/api-errors";
+import { normalizeDownloadProgress } from "@/lib/download-progress";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -76,14 +77,6 @@ type LogEntry = {
 type LogsResponse = {
   entries: LogEntry[];
 };
-
-function normalizeProgress(progress: unknown): number {
-  const value = typeof progress === "number" ? progress : Number(progress);
-  if (Number.isNaN(value) || value < 0) return 0;
-  if (value <= 1) return value * 100;
-  if (value > 100) return 100;
-  return value;
-}
 
 function statusBadgeVariant(status: string): "default" | "secondary" | "destructive" | "outline" {
   switch (status.toLowerCase()) {
@@ -300,11 +293,11 @@ export default function DashboardPage() {
                   </div>
                   <div className="page-dashboard__queue-progress-row">
                     <Progress
-                      value={normalizeProgress(item.progress)}
+                      value={normalizeDownloadProgress(item.progress)}
                       className="page-dashboard__queue-progress"
                     />
                     <span className="page-dashboard__queue-progress-value">
-                      {Math.round(normalizeProgress(item.progress))}%
+                      {Math.round(normalizeDownloadProgress(item.progress))}%
                     </span>
                   </div>
                 </div>

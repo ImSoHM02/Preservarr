@@ -1,6 +1,7 @@
 import React from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { normalizeDownloadProgress } from "@/lib/download-progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -117,8 +118,13 @@ export default function DownloadsPage() {
                     </Badge>
                   </div>
                   <div className="app-common__row-gap-3">
-                    <Progress value={dl.progress * 100} className="page-downloads__height-1-5-flex-1" />
-                    <span className="page-downloads__progress-percent">{Math.round(dl.progress * 100)}%</span>
+                    <Progress
+                      value={normalizeDownloadProgress(dl.progress)}
+                      className="page-downloads__height-1-5-flex-1"
+                    />
+                    <span className="page-downloads__progress-percent">
+                      {Math.round(normalizeDownloadProgress(dl.progress))}%
+                    </span>
                   </div>
                   <div className="page-downloads__meta-row">
                     {typeof dl.size === "number" && <span>{formatBytes(dl.size)}</span>}
