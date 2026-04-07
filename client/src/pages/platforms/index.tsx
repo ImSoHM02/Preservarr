@@ -46,6 +46,16 @@ export default function PlatformsPage() {
     queryFn: () => apiRequest("GET", "/api/platforms").then((r) => r.json()),
   });
 
+  const platformsWithMeta = useMemo<PlatformWithMeta[]>(() => {
+    return (platforms ?? []).map((platform) => {
+      const catalogEntry = PLATFORM_CATALOG_BY_SLUG.get(platform.slug);
+      return {
+        ...platform,
+        category: catalogEntry?.category ?? "unknown",
+      };
+    });
+  }, [platforms]);
+
   if (isLoading) {
     return (
       <div className="page-platforms-index__padding-6">
@@ -67,16 +77,6 @@ export default function PlatformsPage() {
       />
     );
   }
-
-  const platformsWithMeta = useMemo<PlatformWithMeta[]>(() => {
-    return platforms.map((platform) => {
-      const catalogEntry = PLATFORM_CATALOG_BY_SLUG.get(platform.slug);
-      return {
-        ...platform,
-        category: catalogEntry?.category ?? "unknown",
-      };
-    });
-  }, [platforms]);
 
   const filteredPlatforms = platformsWithMeta.filter(
     (platform) =>
