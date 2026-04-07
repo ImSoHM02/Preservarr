@@ -1,7 +1,4 @@
-import {
-  type InferSelectModel,
-  type InferInsertModel,
-} from "drizzle-orm";
+import { type InferSelectModel, type InferInsertModel } from "drizzle-orm";
 import {
   users,
   settings,
@@ -102,10 +99,7 @@ class Storage {
     return db.insert(users).values(data).returning().get();
   }
 
-  async updateUserPassword(
-    userId: number,
-    passwordHash: string,
-  ): Promise<User | undefined> {
+  async updateUserPassword(userId: number, passwordHash: string): Promise<User | undefined> {
     return db
       .update(users)
       .set({ password: passwordHash })
@@ -145,9 +139,16 @@ class Storage {
     return db.select().from(platforms).where(eq(platforms.slug, slug)).get();
   }
 
-  async upsertPlatform(
-    data: InferInsertModel<typeof platforms>,
-  ): Promise<Platform> {
+  async getPlatformGameCount(platformId: number): Promise<number> {
+    const result = db
+      .select({ count: sql<number>`count(*)` })
+      .from(games)
+      .where(eq(games.platformId, platformId))
+      .get();
+    return result?.count ?? 0;
+  }
+
+  async upsertPlatform(data: InferInsertModel<typeof platforms>): Promise<Platform> {
     return db
       .insert(platforms)
       .values(data)
@@ -161,10 +162,17 @@ class Storage {
           torznabCategories: data.torznabCategories,
           igdbPlatformId: data.igdbPlatformId,
           enabled: data.enabled,
+          hidden: data.hidden,
         },
       })
       .returning()
       .get();
+  }
+
+  async deletePlatform(platformId: number): Promise<void> {
+    db.delete(qualityProfiles).where(eq(qualityProfiles.platformId, platformId)).run();
+    db.delete(versionSources).where(eq(versionSources.platformId, platformId)).run();
+    db.delete(platforms).where(eq(platforms.id, platformId)).run();
   }
 
   // ── Games ─────────────────────────────────
@@ -205,7 +213,7 @@ class Storage {
 
   async updateGame(
     id: number,
-    data: Partial<InferInsertModel<typeof games>>,
+    data: Partial<InferInsertModel<typeof games>>
   ): Promise<Game | undefined> {
     return db
       .update(games)
@@ -235,41 +243,26 @@ class Storage {
   // ── Game Files ────────────────────────────
 
   async getGameFiles(gameId: number): Promise<GameFile[]> {
-    return db
-      .select()
-      .from(gameFiles)
-      .where(eq(gameFiles.gameId, gameId))
-      .all();
+    return db.select().from(gameFiles).where(eq(gameFiles.gameId, gameId)).all();
   }
 
   async getGameFileByPath(path: string): Promise<GameFile | undefined> {
     return db.select().from(gameFiles).where(eq(gameFiles.path, path)).get();
   }
 
-  async createGameFile(
-    data: InferInsertModel<typeof gameFiles>,
-  ): Promise<GameFile> {
+  async createGameFile(data: InferInsertModel<typeof gameFiles>): Promise<GameFile> {
     return db.insert(gameFiles).values(data).returning().get();
   }
 
   async updateGameFile(
     id: number,
-    data: Partial<InferInsertModel<typeof gameFiles>>,
+    data: Partial<InferInsertModel<typeof gameFiles>>
   ): Promise<GameFile | undefined> {
-    return db
-      .update(gameFiles)
-      .set(data)
-      .where(eq(gameFiles.id, id))
-      .returning()
-      .get();
+    return db.update(gameFiles).set(data).where(eq(gameFiles.id, id)).returning().get();
   }
 
   async getOutdatedFiles(): Promise<GameFile[]> {
-    return db
-      .select()
-      .from(gameFiles)
-      .where(eq(gameFiles.versionStatus, "outdated"))
-      .all();
+    return db.select().from(gameFiles).where(eq(gameFiles.versionStatus, "outdated")).all();
   }
 
   // ── Wanted Games ──────────────────────────
@@ -285,26 +278,15 @@ class Storage {
     return db.select().from(wantedGames).all();
   }
 
-  async getWantedGameByGameId(
-    gameId: number,
-  ): Promise<WantedGame | undefined> {
-    return db
-      .select()
-      .from(wantedGames)
-      .where(eq(wantedGames.gameId, gameId))
-      .get();
+  async getWantedGameByGameId(gameId: number): Promise<WantedGame | undefined> {
+    return db.select().from(wantedGames).where(eq(wantedGames.gameId, gameId)).get();
   }
 
-  async createWantedGame(
-    data: InferInsertModel<typeof wantedGames>,
-  ): Promise<WantedGame> {
+  async createWantedGame(data: InferInsertModel<typeof wantedGames>): Promise<WantedGame> {
     return db.insert(wantedGames).values(data).returning().get();
   }
 
-  async updateWantedGameStatus(
-    gameId: number,
-    status: string,
-  ): Promise<WantedGame | undefined> {
+  async updateWantedGameStatus(gameId: number, status: string): Promise<WantedGame | undefined> {
     return db
       .update(wantedGames)
       .set({ status: status as any })
@@ -332,22 +314,15 @@ class Storage {
     return db.select().from(indexers).where(eq(indexers.id, id)).get();
   }
 
-  async createIndexer(
-    data: InferInsertModel<typeof indexers>,
-  ): Promise<Indexer> {
+  async createIndexer(data: InferInsertModel<typeof indexers>): Promise<Indexer> {
     return db.insert(indexers).values(data).returning().get();
   }
 
   async updateIndexer(
     id: number,
-    data: Partial<InferInsertModel<typeof indexers>>,
+    data: Partial<InferInsertModel<typeof indexers>>
   ): Promise<Indexer | undefined> {
-    return db
-      .update(indexers)
-      .set(data)
-      .where(eq(indexers.id, id))
-      .returning()
-      .get();
+    return db.update(indexers).set(data).where(eq(indexers.id, id)).returning().get();
   }
 
   async deleteIndexer(id: number): Promise<void> {
@@ -361,29 +336,20 @@ class Storage {
   }
 
   async getQualityProfile(id: number): Promise<QualityProfile | undefined> {
-    return db
-      .select()
-      .from(qualityProfiles)
-      .where(eq(qualityProfiles.id, id))
-      .get();
+    return db.select().from(qualityProfiles).where(eq(qualityProfiles.id, id)).get();
   }
 
   async createQualityProfile(
-    data: InferInsertModel<typeof qualityProfiles>,
+    data: InferInsertModel<typeof qualityProfiles>
   ): Promise<QualityProfile> {
     return db.insert(qualityProfiles).values(data).returning().get();
   }
 
   async updateQualityProfile(
     id: number,
-    data: Partial<InferInsertModel<typeof qualityProfiles>>,
+    data: Partial<InferInsertModel<typeof qualityProfiles>>
   ): Promise<QualityProfile | undefined> {
-    return db
-      .update(qualityProfiles)
-      .set(data)
-      .where(eq(qualityProfiles.id, id))
-      .returning()
-      .get();
+    return db.update(qualityProfiles).set(data).where(eq(qualityProfiles.id, id)).returning().get();
   }
 
   async deleteQualityProfile(id: number): Promise<void> {
@@ -397,37 +363,24 @@ class Storage {
   }
 
   async getEnabledDownloadClients(): Promise<DownloadClient[]> {
-    return db
-      .select()
-      .from(downloadClients)
-      .where(eq(downloadClients.enabled, true))
-      .all();
+    return db.select().from(downloadClients).where(eq(downloadClients.enabled, true)).all();
   }
 
   async getDownloadClient(id: number): Promise<DownloadClient | undefined> {
-    return db
-      .select()
-      .from(downloadClients)
-      .where(eq(downloadClients.id, id))
-      .get();
+    return db.select().from(downloadClients).where(eq(downloadClients.id, id)).get();
   }
 
   async createDownloadClient(
-    data: InferInsertModel<typeof downloadClients>,
+    data: InferInsertModel<typeof downloadClients>
   ): Promise<DownloadClient> {
     return db.insert(downloadClients).values(data).returning().get();
   }
 
   async updateDownloadClient(
     id: number,
-    data: Partial<InferInsertModel<typeof downloadClients>>,
+    data: Partial<InferInsertModel<typeof downloadClients>>
   ): Promise<DownloadClient | undefined> {
-    return db
-      .update(downloadClients)
-      .set(data)
-      .where(eq(downloadClients.id, id))
-      .returning()
-      .get();
+    return db.update(downloadClients).set(data).where(eq(downloadClients.id, id)).returning().get();
   }
 
   async deleteDownloadClient(id: number): Promise<void> {
@@ -445,47 +398,34 @@ class Storage {
         .orderBy(desc(downloadHistory.startedAt))
         .all();
     }
-    return db
-      .select()
-      .from(downloadHistory)
-      .orderBy(desc(downloadHistory.startedAt))
-      .all();
+    return db.select().from(downloadHistory).orderBy(desc(downloadHistory.startedAt)).all();
   }
 
   async createDownloadHistoryEntry(
-    data: InferInsertModel<typeof downloadHistory>,
+    data: InferInsertModel<typeof downloadHistory>
   ): Promise<DownloadHistoryEntry> {
     return db.insert(downloadHistory).values(data).returning().get();
   }
 
   async updateDownloadHistoryEntry(
     id: number,
-    data: Partial<InferInsertModel<typeof downloadHistory>>,
+    data: Partial<InferInsertModel<typeof downloadHistory>>
   ): Promise<DownloadHistoryEntry | undefined> {
-    return db
-      .update(downloadHistory)
-      .set(data)
-      .where(eq(downloadHistory.id, id))
-      .returning()
-      .get();
+    return db.update(downloadHistory).set(data).where(eq(downloadHistory.id, id)).returning().get();
   }
 
   async getActiveDownloadHistory(): Promise<DownloadHistoryEntry[]> {
     return db
       .select()
       .from(downloadHistory)
-      .where(
-        and(
-          eq(downloadHistory.status, "downloading"),
-        ),
-      )
+      .where(and(eq(downloadHistory.status, "downloading")))
       .all();
   }
 
   // ── Search History ────────────────────────
 
   async createSearchHistoryEntry(
-    data: InferInsertModel<typeof searchHistory>,
+    data: InferInsertModel<typeof searchHistory>
   ): Promise<SearchHistoryEntry> {
     return db.insert(searchHistory).values(data).returning().get();
   }
@@ -499,11 +439,7 @@ class Storage {
         .orderBy(desc(searchHistory.searchedAt))
         .all();
     }
-    return db
-      .select()
-      .from(searchHistory)
-      .orderBy(desc(searchHistory.searchedAt))
-      .all();
+    return db.select().from(searchHistory).orderBy(desc(searchHistory.searchedAt)).all();
   }
 
   // ── Version Sources ───────────────────────
@@ -519,22 +455,15 @@ class Storage {
     return db.select().from(versionSources).all();
   }
 
-  async createVersionSource(
-    data: InferInsertModel<typeof versionSources>,
-  ): Promise<VersionSource> {
+  async createVersionSource(data: InferInsertModel<typeof versionSources>): Promise<VersionSource> {
     return db.insert(versionSources).values(data).returning().get();
   }
 
   async updateVersionSource(
     id: number,
-    data: Partial<InferInsertModel<typeof versionSources>>,
+    data: Partial<InferInsertModel<typeof versionSources>>
   ): Promise<VersionSource | undefined> {
-    return db
-      .update(versionSources)
-      .set(data)
-      .where(eq(versionSources.id, id))
-      .returning()
-      .get();
+    return db.update(versionSources).set(data).where(eq(versionSources.id, id)).returning().get();
   }
 
   // ── DAT Entries ───────────────────────────
@@ -543,19 +472,11 @@ class Storage {
     return db
       .select()
       .from(datEntries)
-      .where(
-        or(
-          eq(datEntries.crc32, hash),
-          eq(datEntries.md5, hash),
-          eq(datEntries.sha1, hash),
-        ),
-      )
+      .where(or(eq(datEntries.crc32, hash), eq(datEntries.md5, hash), eq(datEntries.sha1, hash)))
       .all();
   }
 
-  async bulkInsertDatEntries(
-    entries: InferInsertModel<typeof datEntries>[],
-  ): Promise<void> {
+  async bulkInsertDatEntries(entries: InferInsertModel<typeof datEntries>[]): Promise<void> {
     if (entries.length === 0) return;
     // Insert in chunks of 500 to avoid SQLite variable limits
     const chunkSize = 500;
@@ -566,11 +487,7 @@ class Storage {
   }
 
   async getVersionSource(id: number): Promise<VersionSource | undefined> {
-    return db
-      .select()
-      .from(versionSources)
-      .where(eq(versionSources.id, id))
-      .get();
+    return db.select().from(versionSources).where(eq(versionSources.id, id)).get();
   }
 
   async deleteVersionSource(id: number): Promise<void> {
@@ -579,9 +496,7 @@ class Storage {
   }
 
   async clearDatEntries(versionSourceId: number): Promise<void> {
-    db.delete(datEntries)
-      .where(eq(datEntries.versionSourceId, versionSourceId))
-      .run();
+    db.delete(datEntries).where(eq(datEntries.versionSourceId, versionSourceId)).run();
   }
 
   async getDatEntryCount(versionSourceId: number): Promise<number> {
@@ -631,7 +546,11 @@ class Storage {
     if (Number.isFinite(alternateVersion) && !Number.isFinite(directVersion)) {
       return alternate;
     }
-    if (Number.isFinite(alternateVersion) && Number.isFinite(directVersion) && alternateVersion > directVersion) {
+    if (
+      Number.isFinite(alternateVersion) &&
+      Number.isFinite(directVersion) &&
+      alternateVersion > directVersion
+    ) {
       return alternate;
     }
 
@@ -647,7 +566,7 @@ class Storage {
   }
 
   async bulkInsertTitledbEntries(
-    entries: InferInsertModel<typeof titledbEntries>[],
+    entries: InferInsertModel<typeof titledbEntries>[]
   ): Promise<void> {
     if (entries.length === 0) return;
     const chunkSize = 500;
@@ -658,9 +577,7 @@ class Storage {
   }
 
   async clearTitledbEntries(versionSourceId: number): Promise<void> {
-    db.delete(titledbEntries)
-      .where(eq(titledbEntries.versionSourceId, versionSourceId))
-      .run();
+    db.delete(titledbEntries).where(eq(titledbEntries.versionSourceId, versionSourceId)).run();
   }
 
   async getTitledbEntryCount(versionSourceId: number): Promise<number> {
@@ -676,16 +593,17 @@ class Storage {
     return db
       .select()
       .from(games)
-      .where(and(eq(games.platformId, platformId), sql`${games.titleId} IS NOT NULL AND ${games.titleId} != ''`))
+      .where(
+        and(
+          eq(games.platformId, platformId),
+          sql`${games.titleId} IS NOT NULL AND ${games.titleId} != ''`
+        )
+      )
       .all();
   }
 
   async getGameFilesByGameId(gameId: number): Promise<GameFile[]> {
-    return db
-      .select()
-      .from(gameFiles)
-      .where(eq(gameFiles.gameId, gameId))
-      .all();
+    return db.select().from(gameFiles).where(eq(gameFiles.gameId, gameId)).all();
   }
 
   // ── Notification Targets ──────────────────
@@ -695,22 +613,18 @@ class Storage {
   }
 
   async getEnabledNotificationTargets(): Promise<NotificationTarget[]> {
-    return db
-      .select()
-      .from(notificationTargets)
-      .where(eq(notificationTargets.enabled, true))
-      .all();
+    return db.select().from(notificationTargets).where(eq(notificationTargets.enabled, true)).all();
   }
 
   async createNotificationTarget(
-    data: InferInsertModel<typeof notificationTargets>,
+    data: InferInsertModel<typeof notificationTargets>
   ): Promise<NotificationTarget> {
     return db.insert(notificationTargets).values(data).returning().get();
   }
 
   async updateNotificationTarget(
     id: number,
-    data: Partial<InferInsertModel<typeof notificationTargets>>,
+    data: Partial<InferInsertModel<typeof notificationTargets>>
   ): Promise<NotificationTarget | undefined> {
     return db
       .update(notificationTargets)
@@ -721,9 +635,7 @@ class Storage {
   }
 
   async deleteNotificationTarget(id: number): Promise<void> {
-    db.delete(notificationTargets)
-      .where(eq(notificationTargets.id, id))
-      .run();
+    db.delete(notificationTargets).where(eq(notificationTargets.id, id)).run();
   }
 }
 

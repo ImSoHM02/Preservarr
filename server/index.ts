@@ -12,6 +12,7 @@ import { expressLogger } from "./logger.js";
 import { summarizeError } from "./errors.js";
 import { setupSocketIO } from "./socket.js";
 import { ensureDatabase } from "./migrate.js";
+import { syncPlatformCatalog } from "./platform-catalog.js";
 import authRoutes from "./routes/auth.js";
 import platformRoutes from "./routes/platforms.js";
 import gameRoutes from "./routes/games.js";
@@ -88,7 +89,7 @@ app.use((req, res, next) => {
           ip: req.ip,
           userAgent: req.get("user-agent"),
         },
-        `API ${req.method} ${path} ${res.statusCode} in ${duration}ms`,
+        `API ${req.method} ${path} ${res.statusCode} in ${duration}ms`
       );
     }
   });
@@ -100,6 +101,7 @@ app.use((req, res, next) => {
   try {
     // Ensure database is ready before starting server
     await ensureDatabase();
+    await syncPlatformCatalog();
 
     const server = http.createServer(app);
     setupSocketIO(server);
@@ -173,15 +175,10 @@ app.use((req, res, next) => {
     if (ssl.enabled && ssl.certPath && ssl.keyPath) {
       try {
         const { validateCertFiles } = await import("./ssl.js");
-        const { valid, error } = await validateCertFiles(
-          ssl.certPath,
-          ssl.keyPath,
-        );
+        const { valid, error } = await validateCertFiles(ssl.certPath, ssl.keyPath);
 
         if (!valid) {
-          log(
-            `SSL Configuration Invalid: ${error}. Starting in HTTP-only mode.`,
-          );
+          log(`SSL Configuration Invalid: ${error}. Starting in HTTP-only mode.`);
         } else {
           const httpsOptions = {
             key: await fs.promises.readFile(ssl.keyPath),

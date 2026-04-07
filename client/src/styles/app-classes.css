@@ -999,8 +999,28 @@
     @apply cursor-pointer transition-colors hover:bg-primary/20;
   }
 
+  .page-platforms-index__manager-bar {
+    @apply flex flex-col gap-3 rounded-lg border border-border p-3 sm:flex-row sm:items-center sm:justify-between;
+  }
+
+  .page-platforms-index__manager-controls {
+    @apply flex flex-wrap items-center gap-2;
+  }
+
+  .page-platforms-index__manager-select {
+    @apply h-8 w-48 text-xs;
+  }
+
+  .page-platforms-index__selection-actions {
+    @apply flex flex-wrap items-center gap-2;
+  }
+
+  .page-platforms-index__manager-meta {
+    @apply text-xs text-muted-foreground mr-1;
+  }
+
   .page-platforms-index__card-content {
-    @apply p-5 flex flex-col items-center justify-center gap-3 min-h-[7.5rem];
+    @apply relative p-5 flex flex-col items-center justify-center gap-3 min-h-[7.5rem];
   }
 
   .page-platforms-index__logo-wrap {
@@ -1207,6 +1227,26 @@
     @apply p-6 space-y-6 overflow-y-auto h-full;
   }
 
+  .page-settings__section {
+    @apply space-y-3;
+  }
+
+  .page-settings__section-header {
+    @apply space-y-1 border-b border-border/60 pb-3;
+  }
+
+  .page-settings__section-title {
+    @apply text-base font-semibold;
+  }
+
+  .page-settings__section-description {
+    @apply text-sm text-muted-foreground;
+  }
+
+  .page-settings__section-cards {
+    @apply space-y-4;
+  }
+
   .page-settings__path-item {
     @apply flex items-center gap-3 p-3 bg-muted/40 rounded-md;
   }
@@ -1221,6 +1261,34 @@
 
   .page-settings__path-form-grid {
     @apply grid grid-cols-[160px_1fr_auto] gap-2 items-end;
+  }
+
+  .page-settings__platform-filter-row {
+    @apply grid grid-cols-1 gap-2 sm:grid-cols-[1fr_180px];
+  }
+
+  .page-settings__platform-list {
+    @apply rounded-md border border-border max-h-[22rem] overflow-y-auto divide-y divide-border/60;
+  }
+
+  .page-settings__platform-list-empty {
+    @apply p-4 text-sm text-muted-foreground;
+  }
+
+  .page-settings__platform-row {
+    @apply flex items-center justify-between gap-3 p-3 bg-card/35;
+  }
+
+  .page-settings__platform-name {
+    @apply text-sm font-medium;
+  }
+
+  .page-settings__platform-meta {
+    @apply text-xs text-muted-foreground;
+  }
+
+  .page-settings__platform-controls {
+    @apply flex items-center gap-3;
   }
 
   .page-settings__height-4-width-4-margin-right-1 {
@@ -2541,8 +2609,7 @@
     @apply inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
   }
 
-  .ui-toast__variant-destructive
-    .ui-toast__action {
+  .ui-toast__variant-destructive .ui-toast__action {
     @apply border-muted/40 hover:border-destructive/30 hover:bg-destructive hover:text-destructive-foreground focus:ring-destructive;
   }
 
@@ -2550,13 +2617,11 @@
     @apply absolute right-2 top-2 rounded-md p-1 text-foreground/50 opacity-0 transition-opacity hover:text-foreground focus:opacity-100 focus:outline-none focus:ring-2;
   }
 
-  .ui-toast__root:hover
-    .ui-toast__close-button {
+  .ui-toast__root:hover .ui-toast__close-button {
     @apply opacity-100;
   }
 
-  .ui-toast__variant-destructive
-    .ui-toast__close-button {
+  .ui-toast__variant-destructive .ui-toast__close-button {
     @apply text-destructive-foreground/80 hover:text-destructive-foreground focus:ring-destructive focus:ring-offset-destructive;
   }
 

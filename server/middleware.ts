@@ -49,10 +49,13 @@ export const authRateLimiter = rateLimit({
 // General API rate limiter (lenient, just to prevent abuse)
 export const generalApiLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  max: 100, // limit each IP to 100 requests per minute
+  max: 400, // higher ceiling for dashboard polling and platform-heavy reads
   message: "Too many requests, please try again later",
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) =>
+    req.method === "GET" &&
+    /^\/platforms\/[^/]+\/stats$/.test(req.path),
 });
 
 // Validation middleware to check for validation errors

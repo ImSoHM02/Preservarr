@@ -1,36 +1,22 @@
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Gamepad2 } from "lucide-react";
 import { useTheme } from "next-themes";
 import EmptyState from "@/components/EmptyState";
-import nintendoSwitchLight from "../../images/Light - Color/Consoles/Nintendo Switch.png";
-import nintendoSwitchDark from "../../images/Dark - Color/Consoles/Nintendo Switch.png";
-import nintendo64Light from "../../images/Light - Color/Consoles/Nintendo 64.png";
-import nintendo64Dark from "../../images/Dark - Color/Consoles/Nintendo 64.png";
-import snesLight from "../../images/Light - Color/Consoles/Super Nintendo Entertainment System.png";
-import snesDark from "../../images/Dark - Color/Consoles/Super Nintendo Entertainment System.png";
-import gameBoyLight from "../../images/Light - Color/Handhelds/Nintendo Game Boy.png";
-import gameBoyDark from "../../images/Dark - Color/Handhelds/Nintendo Game Boy.png";
-import gameBoyColorLight from "../../images/Light - Color/Handhelds/Nintendo Game Boy Color.png";
-import gameBoyColorDark from "../../images/Dark - Color/Handhelds/Nintendo Game Boy Color.png";
-import gameBoyAdvanceLight from "../../images/Light - Color/Handhelds/Nintendo Game Boy Advance.png";
-import gameBoyAdvanceDark from "../../images/Dark - Color/Handhelds/Nintendo Game Boy Advance.png";
-import nintendoDsLight from "../../images/Light - Color/Handhelds/Nintendo DS.png";
-import nintendoDsDark from "../../images/Dark - Color/Handhelds/Nintendo DS.png";
-import nintendo3dsLight from "../../images/Light - Color/Handhelds/Nintendo 3DS.png";
-import nintendo3dsDark from "../../images/Dark - Color/Handhelds/Nintendo 3DS.png";
-import playstation1Light from "../../images/Light - Color/Consoles/Sony Playstation.png";
-import playstation1Dark from "../../images/Dark - Color/Consoles/Sony Playstation.png";
-import playstation2Light from "../../images/Light - Color/Consoles/Sony Playstation 2.png";
-import playstation2Dark from "../../images/Dark - Color/Consoles/Sony Playstation 2.png";
-import pspLight from "../../images/Light - Color/Handhelds/Sony PSP.png";
-import pspDark from "../../images/Dark - Color/Handhelds/Sony PSP.png";
-import segaGenesisLight from "../../images/Light - Color/Consoles/Sega Genesis.png";
-import segaGenesisDark from "../../images/Dark - Color/Consoles/Sega Genesis.png";
-import segaDreamcastLight from "../../images/Light - Color/Consoles/Sega Dreamcast.png";
-import segaDreamcastDark from "../../images/Dark - Color/Consoles/Sega Dreamcast.png";
+import { getPlatformIconSrc } from "@/lib/platform-icons";
+import { PLATFORM_CATALOG_BY_SLUG, type PlatformImageCategory } from "@shared/platform-catalog";
 
 type PlatformWithCount = {
   id: number;
@@ -40,47 +26,24 @@ type PlatformWithCount = {
   namingStandard: string;
   versionSource: string;
   enabled: boolean;
+  hidden: boolean;
   torznabCategories: string;
   igdbPlatformId: number | null;
   gameCount: number;
 };
 
-type PlatformIconSet = {
-  light: string;
-  dark: string;
-};
-
-const platformIcons: Record<string, PlatformIconSet> = {
-  switch: { light: nintendoSwitchLight, dark: nintendoSwitchDark },
-  n64: { light: nintendo64Light, dark: nintendo64Dark },
-  snes: { light: snesLight, dark: snesDark },
-  gb: { light: gameBoyLight, dark: gameBoyDark },
-  gbc: { light: gameBoyColorLight, dark: gameBoyColorDark },
-  gba: { light: gameBoyAdvanceLight, dark: gameBoyAdvanceDark },
-  nds: { light: nintendoDsLight, dark: nintendoDsDark },
-  "3ds": { light: nintendo3dsLight, dark: nintendo3dsDark },
-  ps1: { light: playstation1Light, dark: playstation1Dark },
-  ps2: { light: playstation2Light, dark: playstation2Dark },
-  psp: { light: pspLight, dark: pspDark },
-  genesis: { light: segaGenesisLight, dark: segaGenesisDark },
-  dreamcast: { light: segaDreamcastLight, dark: segaDreamcastDark },
-};
-
-function getPlatformIconSrc(slug: string, isLightTheme: boolean) {
-  const iconSet = platformIcons[slug];
-  if (!iconSet) {
-    return null;
-  }
-  return isLightTheme ? iconSet.dark : iconSet.light;
-}
+type PlatformWithMeta = PlatformWithCount & { category: PlatformImageCategory | "unknown" };
+type PlatformCategoryFilter = "all" | PlatformImageCategory | "unknown";
 
 export default function PlatformsPage() {
   const [, navigate] = useLocation();
   const { resolvedTheme } = useTheme();
   const isLightTheme = resolvedTheme === "light";
+  const [categoryFilter, setCategoryFilter] = useState<PlatformCategoryFilter>("all");
 
   const { data: platforms, isLoading } = useQuery<PlatformWithCount[]>({
     queryKey: ["/api/platforms"],
+    queryFn: () => apiRequest("GET", "/api/platforms").then((r) => r.json()),
   });
 
   if (isLoading) {
@@ -105,11 +68,28 @@ export default function PlatformsPage() {
     );
   }
 
-  const enabled = platforms.filter((p) => p.enabled);
-  const disabled = platforms.filter((p) => !p.enabled);
+  const platformsWithMeta = useMemo<PlatformWithMeta[]>(() => {
+    return platforms.map((platform) => {
+      const catalogEntry = PLATFORM_CATALOG_BY_SLUG.get(platform.slug);
+      return {
+        ...platform,
+        category: catalogEntry?.category ?? "unknown",
+      };
+    });
+  }, [platforms]);
 
-  const renderPlatformCard = (platform: PlatformWithCount) => {
+  const filteredPlatforms = platformsWithMeta.filter(
+    (platform) =>
+      !platform.hidden && (categoryFilter === "all" || platform.category === categoryFilter)
+  );
+
+  const enabled = filteredPlatforms.filter((p) => p.enabled);
+  const disabled = filteredPlatforms.filter((p) => !p.enabled);
+  const hiddenCount = platformsWithMeta.filter((p) => p.hidden).length;
+
+  const renderPlatformCard = (platform: PlatformWithMeta) => {
     const iconSrc = getPlatformIconSrc(platform.slug, isLightTheme);
+
     return (
       <Card
         key={platform.id}
@@ -148,9 +128,35 @@ export default function PlatformsPage() {
         </div>
       </div>
 
-      <div className="page-platforms-index__platform-grid">
-        {enabled.map(renderPlatformCard)}
+      <div className="page-platforms-index__manager-bar">
+        <div className="page-platforms-index__manager-controls">
+          <Select
+            value={categoryFilter}
+            onValueChange={(value) => setCategoryFilter(value as PlatformCategoryFilter)}
+          >
+            <SelectTrigger className="page-platforms-index__manager-select">
+              <SelectValue placeholder="Filter by category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              <SelectItem value="consoles">Consoles</SelectItem>
+              <SelectItem value="handhelds">Handhelds</SelectItem>
+              <SelectItem value="computers">Computers</SelectItem>
+              <SelectItem value="arcade">Arcade</SelectItem>
+              <SelectItem value="unknown">Unknown</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="page-platforms-index__selection-actions">
+          <p className="page-platforms-index__manager-meta">{hiddenCount} hidden in settings</p>
+          <Button type="button" size="sm" variant="outline" onClick={() => navigate("/settings")}>
+            Manage Visibility
+          </Button>
+        </div>
       </div>
+
+      <div className="page-platforms-index__platform-grid">{enabled.map(renderPlatformCard)}</div>
 
       {disabled.length > 0 && (
         <>

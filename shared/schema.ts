@@ -1,11 +1,4 @@
-import {
-  sqliteTable,
-  text,
-  integer,
-  real,
-  uniqueIndex,
-  index,
-} from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, uniqueIndex, index } from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { sql } from "drizzle-orm";
@@ -18,9 +11,7 @@ export const platforms = sqliteTable("platforms", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
-  fileExtensions: text("file_extensions", { mode: "json" })
-    .notNull()
-    .$type<string[]>(),
+  fileExtensions: text("file_extensions", { mode: "json" }).notNull().$type<string[]>(),
   namingStandard: text("naming_standard", {
     enum: ["no-intro", "redump", "none"],
   })
@@ -32,6 +23,7 @@ export const platforms = sqliteTable("platforms", {
     .notNull()
     .default("none"),
   enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+  hidden: integer("hidden", { mode: "boolean" }).notNull().default(false),
   torznabCategories: text("torznab_categories").notNull().default("6000"),
   igdbPlatformId: integer("igdb_platform_id"),
   createdAt: text("created_at")
@@ -77,7 +69,7 @@ export const games = sqliteTable(
     igdbIdx: index("games_igdb_id_idx").on(table.igdbId),
     platformIdx: index("games_platform_id_idx").on(table.platformId),
     titleIdIdx: index("games_title_id_idx").on(table.titleId),
-  }),
+  })
 );
 
 export const gamesRelations = relations(games, ({ one, many }) => ({
@@ -126,7 +118,7 @@ export const gameFiles = sqliteTable(
     pathIdx: uniqueIndex("game_files_path_idx").on(table.path),
     crc32Idx: index("game_files_crc32_idx").on(table.crc32),
     sha1Idx: index("game_files_sha1_idx").on(table.sha1),
-  }),
+  })
 );
 
 export const gameFilesRelations = relations(gameFiles, ({ one }) => ({
@@ -154,9 +146,7 @@ export const wantedGames = sqliteTable(
       .notNull()
       .default("wanted"),
     monitored: integer("monitored", { mode: "boolean" }).notNull().default(true),
-    qualityProfileId: integer("quality_profile_id").references(
-      () => qualityProfiles.id,
-    ),
+    qualityProfileId: integer("quality_profile_id").references(() => qualityProfiles.id),
     addedAt: text("added_at")
       .notNull()
       .default(sql`(datetime('now'))`),
@@ -164,7 +154,7 @@ export const wantedGames = sqliteTable(
   (table) => ({
     statusIdx: index("wanted_games_status_idx").on(table.status),
     gameIdx: index("wanted_games_game_id_idx").on(table.gameId),
-  }),
+  })
 );
 
 export const wantedGamesRelations = relations(wantedGames, ({ one }) => ({
@@ -199,19 +189,16 @@ export const versionSources = sqliteTable(
   },
   (table) => ({
     platformIdx: index("version_sources_platform_id_idx").on(table.platformId),
-  }),
+  })
 );
 
-export const versionSourcesRelations = relations(
-  versionSources,
-  ({ one, many }) => ({
-    platform: one(platforms, {
-      fields: [versionSources.platformId],
-      references: [platforms.id],
-    }),
-    datEntries: many(datEntries),
+export const versionSourcesRelations = relations(versionSources, ({ one, many }) => ({
+  platform: one(platforms, {
+    fields: [versionSources.platformId],
+    references: [platforms.id],
   }),
-);
+  datEntries: many(datEntries),
+}));
 
 // ──────────────────────────────────────────────
 // DAT Entries (parsed No-Intro / Redump)
@@ -232,12 +219,10 @@ export const datEntries = sqliteTable(
     sha1: text("sha1"),
   },
   (table) => ({
-    versionSourceIdx: index("dat_entries_version_source_id_idx").on(
-      table.versionSourceId,
-    ),
+    versionSourceIdx: index("dat_entries_version_source_id_idx").on(table.versionSourceId),
     crc32Idx: index("dat_entries_crc32_idx").on(table.crc32),
     sha1Idx: index("dat_entries_sha1_idx").on(table.sha1),
-  }),
+  })
 );
 
 export const datEntriesRelations = relations(datEntries, ({ one }) => ({
@@ -268,11 +253,9 @@ export const titledbEntries = sqliteTable(
     region: text("region"),
   },
   (table) => ({
-    versionSourceIdx: index("titledb_entries_version_source_id_idx").on(
-      table.versionSourceId,
-    ),
+    versionSourceIdx: index("titledb_entries_version_source_id_idx").on(table.versionSourceId),
     titleIdIdx: index("titledb_entries_title_id_idx").on(table.titleId),
-  }),
+  })
 );
 
 export const titledbEntriesRelations = relations(titledbEntries, ({ one }) => ({
@@ -298,9 +281,7 @@ export const downloadHistory = sqliteTable(
     sizeBytes: integer("size_bytes"),
     seeders: integer("seeders"),
     score: integer("score"),
-    downloadClientId: integer("download_client_id").references(
-      () => downloadClients.id,
-    ),
+    downloadClientId: integer("download_client_id").references(() => downloadClients.id),
     externalId: text("external_id"),
     startedAt: text("started_at")
       .notNull()
@@ -314,22 +295,19 @@ export const downloadHistory = sqliteTable(
   },
   (table) => ({
     gameIdx: index("download_history_game_id_idx").on(table.gameId),
-  }),
+  })
 );
 
-export const downloadHistoryRelations = relations(
-  downloadHistory,
-  ({ one }) => ({
-    game: one(games, {
-      fields: [downloadHistory.gameId],
-      references: [games.id],
-    }),
-    indexer: one(indexers, {
-      fields: [downloadHistory.indexerId],
-      references: [indexers.id],
-    }),
+export const downloadHistoryRelations = relations(downloadHistory, ({ one }) => ({
+  game: one(games, {
+    fields: [downloadHistory.gameId],
+    references: [games.id],
   }),
-);
+  indexer: one(indexers, {
+    fields: [downloadHistory.indexerId],
+    references: [indexers.id],
+  }),
+}));
 
 // ──────────────────────────────────────────────
 // Search History
@@ -352,7 +330,7 @@ export const searchHistory = sqliteTable(
   },
   (table) => ({
     gameIdx: index("search_history_game_id_idx").on(table.gameId),
-  }),
+  })
 );
 
 export const searchHistoryRelations = relations(searchHistory, ({ one }) => ({
@@ -396,28 +374,19 @@ export const qualityProfiles = sqliteTable("quality_profiles", {
   platformId: integer("platform_id")
     .notNull()
     .references(() => platforms.id),
-  preferredFormats: text("preferred_formats", { mode: "json" })
-    .notNull()
-    .$type<string[]>(),
-  preferredRegions: text("preferred_regions", { mode: "json" })
-    .notNull()
-    .$type<string[]>(),
+  preferredFormats: text("preferred_formats", { mode: "json" }).notNull().$type<string[]>(),
+  preferredRegions: text("preferred_regions", { mode: "json" }).notNull().$type<string[]>(),
   minSeeders: integer("min_seeders").notNull().default(1),
-  upgradeExisting: integer("upgrade_existing", { mode: "boolean" })
-    .notNull()
-    .default(false),
+  upgradeExisting: integer("upgrade_existing", { mode: "boolean" }).notNull().default(false),
 });
 
-export const qualityProfilesRelations = relations(
-  qualityProfiles,
-  ({ one, many }) => ({
-    platform: one(platforms, {
-      fields: [qualityProfiles.platformId],
-      references: [platforms.id],
-    }),
-    wantedGames: many(wantedGames),
+export const qualityProfilesRelations = relations(qualityProfiles, ({ one, many }) => ({
+  platform: one(platforms, {
+    fields: [qualityProfiles.platformId],
+    references: [platforms.id],
   }),
-);
+  wantedGames: many(wantedGames),
+}));
 
 // ──────────────────────────────────────────────
 // Download Clients
@@ -433,9 +402,7 @@ export const downloadClients = sqliteTable("download_clients", {
   username: text("username"),
   password: text("password"),
   downloadPath: text("download_path"),
-  platformPaths: text("platform_paths", { mode: "json" }).$type<
-    Record<string, string>
-  >(),
+  platformPaths: text("platform_paths", { mode: "json" }).$type<Record<string, string>>(),
   enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
 });
 
@@ -507,10 +474,8 @@ export const selectQualityProfileSchema = createSelectSchema(qualityProfiles);
 export const insertDownloadClientSchema = createInsertSchema(downloadClients);
 export const selectDownloadClientSchema = createSelectSchema(downloadClients);
 
-export const insertNotificationTargetSchema =
-  createInsertSchema(notificationTargets);
-export const selectNotificationTargetSchema =
-  createSelectSchema(notificationTargets);
+export const insertNotificationTargetSchema = createInsertSchema(notificationTargets);
+export const selectNotificationTargetSchema = createSelectSchema(notificationTargets);
 
 export const insertSettingsSchema = createInsertSchema(settings);
 export const selectSettingsSchema = createSelectSchema(settings);

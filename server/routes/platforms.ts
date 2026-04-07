@@ -3,7 +3,7 @@ import { storage } from "../storage.js";
 import { authenticateToken } from "../auth.js";
 import { db } from "../db.js";
 import { games, gameFiles, wantedGames } from "../../shared/schema.js";
-import { eq, sql, count } from "drizzle-orm";
+import { eq, count } from "drizzle-orm";
 import { sendRouteError } from "../errors.js";
 
 const router = Router();
@@ -24,11 +24,23 @@ router.get("/", async (_req, res) => {
       .groupBy(games.platformId)
       .all();
 
+    const wantedCounts = db
+      .select({
+        platformId: games.platformId,
+        count: count().as("count"),
+      })
+      .from(wantedGames)
+      .innerJoin(games, eq(wantedGames.gameId, games.id))
+      .groupBy(games.platformId)
+      .all();
+
     const countMap = new Map(gameCounts.map((r) => [r.platformId, r.count]));
+    const wantedMap = new Map(wantedCounts.map((r) => [r.platformId, r.count]));
 
     const result = allPlatforms.map((p) => ({
       ...p,
       gameCount: countMap.get(p.id) ?? 0,
+      wantedCount: wantedMap.get(p.id) ?? 0,
     }));
 
     res.json(result);
@@ -74,18 +86,14 @@ router.patch("/:id", async (req, res) => {
       return res.status(404).json({ error: "Platform not found" });
     }
 
-    const { enabled, torznabCategories, igdbPlatformId } = req.body;
+    const { enabled, hidden, torznabCategories, igdbPlatformId } = req.body;
     const updated = await storage.upsertPlatform({
       ...platform,
       enabled: enabled !== undefined ? enabled : platform.enabled,
+      hidden: hidden !== undefined ? hidden : platform.hidden,
       torznabCategories:
-        torznabCategories !== undefined
-          ? torznabCategories
-          : platform.torznabCategories,
-      igdbPlatformId:
-        igdbPlatformId !== undefined
-          ? igdbPlatformId
-          : platform.igdbPlatformId,
+        torznabCategories !== undefined ? torznabCategories : platform.torznabCategories,
+      igdbPlatformId: igdbPlatformId !== undefined ? igdbPlatformId : platform.igdbPlatformId,
     });
 
     res.json(updated);

@@ -26,11 +26,9 @@ type PlatformWithCount = {
   name: string;
   slug: string;
   enabled: boolean;
+  hidden: boolean;
   gameCount: number;
-};
-
-type PlatformStats = {
-  wantedGames: number;
+  wantedCount: number;
 };
 
 type DownloadStatus = {
@@ -126,30 +124,8 @@ export default function DashboardPage() {
     queryFn: () => apiRequest("GET", "/api/platforms").then((r) => r.json()),
   });
 
-  const enabledPlatforms = platforms.filter((p) => p.enabled);
+  const enabledPlatforms = platforms.filter((p) => p.enabled && !p.hidden);
   const totalGames = enabledPlatforms.reduce((sum, p) => sum + p.gameCount, 0);
-
-  const { data: platformStats = [] } = useQuery<PlatformStats[]>({
-    queryKey: ["dashboard-platform-stats", enabledPlatforms.map((p) => p.slug).join(",")],
-    enabled: enabledPlatforms.length > 0,
-    queryFn: async () => {
-      const stats = await Promise.all(
-        enabledPlatforms.map(async (platform) => {
-          try {
-            const res = await apiRequest("GET", `/api/platforms/${platform.slug}/stats`);
-            const payload = await res.json();
-            return {
-              wantedGames:
-                typeof payload.wantedGames === "number" ? payload.wantedGames : 0,
-            };
-          } catch {
-            return { wantedGames: 0 };
-          }
-        }),
-      );
-      return stats;
-    },
-  });
 
   const { data: queues = [], isLoading: queueLoading } = useQuery<ClientQueue[]>({
     queryKey: ["dashboard-queue"],
@@ -219,20 +195,22 @@ export default function DashboardPage() {
     queue.downloads.map((download) => ({
       ...download,
       clientName: queue.clientName,
-    })),
+    }))
   );
 
   const queueCount = queueItems.length;
   const downloadingCount = queueItems.filter((item) =>
-    ["downloading", "downloading_metadata"].includes(item.status.toLowerCase()),
+    ["downloading", "downloading_metadata"].includes(item.status.toLowerCase())
   ).length;
   const completedCount = queueItems.filter((item) =>
-    ["done", "completed", "seeding"].includes(item.status.toLowerCase()),
+    ["done", "completed", "seeding"].includes(item.status.toLowerCase())
   ).length;
   const failedCount = queueItems.filter((item) =>
-    ["error", "failed", "stalled"].includes(item.status.toLowerCase()),
+    ["error", "failed", "stalled"].includes(item.status.toLowerCase())
   ).length;
-  const wantedCount = platformStats.reduce((sum, stats) => sum + stats.wantedGames, 0);
+  const wantedCount = enabledPlatforms.reduce((sum, platform) => {
+    return sum + (typeof platform.wantedCount === "number" ? platform.wantedCount : 0);
+  }, 0);
 
   const enabledIndexerCount = indexers.filter((indexer) => indexer.enabled).length;
   const enabledClientCount = downloadClients.filter((client) => client.enabled).length;
@@ -260,7 +238,12 @@ export default function DashboardPage() {
           subtitle="pending"
           icon={ListTodo}
         />
-        <StatCard title="Queued" value={queueLoading ? null : queueCount} subtitle="active" icon={Clock3} />
+        <StatCard
+          title="Queued"
+          value={queueLoading ? null : queueCount}
+          subtitle="active"
+          icon={Clock3}
+        />
         <StatCard
           title="Downloading"
           value={queueLoading ? null : downloadingCount}
@@ -302,7 +285,9 @@ export default function DashboardPage() {
                 ))}
               </div>
             ) : queueItems.length === 0 ? (
-              <p className="page-dashboard__empty-message">Queue is empty across all enabled download clients.</p>
+              <p className="page-dashboard__empty-message">
+                Queue is empty across all enabled download clients.
+              </p>
             ) : (
               queueItems.slice(0, 8).map((item) => (
                 <div key={`${item.clientName}-${item.id}`} className="page-dashboard__queue-item">
@@ -314,7 +299,10 @@ export default function DashboardPage() {
                     <Badge variant={statusBadgeVariant(item.status)}>{item.status}</Badge>
                   </div>
                   <div className="page-dashboard__queue-progress-row">
-                    <Progress value={normalizeProgress(item.progress)} className="page-dashboard__queue-progress" />
+                    <Progress
+                      value={normalizeProgress(item.progress)}
+                      className="page-dashboard__queue-progress"
+                    />
                     <span className="page-dashboard__queue-progress-value">
                       {Math.round(normalizeProgress(item.progress))}%
                     </span>
@@ -427,10 +415,14 @@ export default function DashboardPage() {
               <div key={`${event.timestamp}-${index}`} className="page-dashboard__event-row">
                 <div className="page-dashboard__event-row-top">
                   <Badge variant={statusBadgeVariant(event.level)}>{event.level}</Badge>
-                  <span className="page-dashboard__event-time">{formatTimeAgo(event.timestamp)}</span>
+                  <span className="page-dashboard__event-time">
+                    {formatTimeAgo(event.timestamp)}
+                  </span>
                 </div>
                 <p className="page-dashboard__event-message">{event.message}</p>
-                {event.module && <p className="page-dashboard__event-module">module: {event.module}</p>}
+                {event.module && (
+                  <p className="page-dashboard__event-module">module: {event.module}</p>
+                )}
               </div>
             ))
           )}
