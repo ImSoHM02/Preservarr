@@ -10,6 +10,7 @@ import { AuthProvider } from "@/lib/auth";
 import { Suspense, lazy } from "react";
 import LoadingFallback from "@/components/LoadingFallback";
 import { ThemeProvider } from "next-themes";
+import { ColorThemeProvider } from "@/lib/color-theme";
 
 const NotFound = lazy(() => import("@/pages/not-found"));
 const LoginPage = lazy(() => import("@/pages/auth/login"));
@@ -72,10 +73,12 @@ function App() {
     return (
       <QueryClientProvider client={queryClient}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-          <AuthProvider>
-            <Router />
-            <Toaster />
-          </AuthProvider>
+          <ColorThemeProvider>
+            <AuthProvider>
+              <Router />
+              <Toaster />
+            </AuthProvider>
+          </ColorThemeProvider>
         </ThemeProvider>
       </QueryClientProvider>
     );
@@ -84,22 +87,24 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-        <AuthProvider>
-          <TooltipProvider>
-            <SidebarProvider className="app-shell__prop-sidebar-width">
-              <div className="app-shell__layout">
-                <AppSidebar activeItem={location} onNavigate={navigate} />
-                <div className="app-shell__main">
-                  <Header title={getPageTitle(location)} />
-                  <main className="app-shell__flex-1-overflow-hidden">
-                    <Router />
-                  </main>
+        <ColorThemeProvider>
+          <AuthProvider>
+            <TooltipProvider>
+              <SidebarProvider className="app-shell__prop-sidebar-width">
+                <div className="app-shell__layout">
+                  <AppSidebar activeItem={location} onNavigate={navigate} />
+                  <div className="app-shell__main">
+                    <Header title={getPageTitle(location)} />
+                    <main className="app-shell__flex-1-overflow-hidden">
+                      <Router />
+                    </main>
+                  </div>
                 </div>
-              </div>
-            </SidebarProvider>
-            <Toaster />
-          </TooltipProvider>
-        </AuthProvider>
+              </SidebarProvider>
+              <Toaster />
+            </TooltipProvider>
+          </AuthProvider>
+        </ColorThemeProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

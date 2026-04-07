@@ -107,6 +107,10 @@
     @apply text-xl font-semibold;
   }
 
+  .cmp-header__theme-select-trigger {
+    @apply w-32 text-xs;
+  }
+
   .cmp-igdbsearchmodal__dialog-content {
     @apply max-w-2xl max-h-[85vh] flex flex-col overflow-hidden;
   }
@@ -464,7 +468,7 @@
   }
 
   .page-dashboard__platform-row {
-    @apply flex items-center justify-between w-full rounded-md px-3 py-2 text-sm hover:bg-accent/50 transition-colors;
+    @apply flex items-center justify-between w-full rounded-md px-3 py-2 text-sm hover:bg-primary/20 transition-colors;
   }
 
   .app-common__row-gap-3 {
@@ -884,7 +888,7 @@
   }
 
   .page-platforms-index__platform-card-hover {
-    @apply cursor-pointer transition-colors hover:bg-accent/50;
+    @apply cursor-pointer transition-colors hover:bg-primary/20;
   }
 
   .page-platforms-index__card-header {
@@ -2421,7 +2425,7 @@
 
   .ui-toast__variant-destructive
     .ui-toast__close-button {
-    @apply text-red-300 hover:text-red-50 focus:ring-red-400 focus:ring-offset-red-600;
+    @apply text-destructive-foreground/80 hover:text-destructive-foreground focus:ring-destructive focus:ring-offset-destructive;
   }
 
   .ui-toast__title {
