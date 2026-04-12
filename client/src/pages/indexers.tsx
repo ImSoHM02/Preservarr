@@ -41,6 +41,7 @@ interface Indexer {
 
 interface IndexerFormData {
   name: string;
+  type: "torznab" | "newznab";
   url: string;
   apiKey: string;
   priority: number;
@@ -50,6 +51,7 @@ interface IndexerFormData {
 
 const defaultForm: IndexerFormData = {
   name: "",
+  type: "torznab",
   url: "",
   apiKey: "",
   priority: 50,
@@ -74,7 +76,7 @@ export default function IndexersPage() {
     queryFn: () => apiRequest("GET", "/api/indexers").then((r) => r.json()),
   });
 
-  type IndexerPayload = Omit<IndexerFormData, "categories"> & { categories: string[] };
+  type IndexerPayload = Omit<IndexerFormData, "categories"> & { categories: string[]; type: string };
 
   const createMutation = useMutation({
     mutationFn: (data: IndexerPayload) =>
@@ -175,6 +177,7 @@ export default function IndexersPage() {
     setEditingId(indexer.id);
     setForm({
       name: indexer.name,
+      type: (indexer.type === "newznab" ? "newznab" : "torznab") as "torznab" | "newznab",
       url: indexer.url,
       apiKey: indexer.apiKey,
       priority: indexer.priority,
@@ -202,7 +205,7 @@ export default function IndexersPage() {
       <div className="page-dashboard__stat-row">
         <div>
           <h1 className="page-auth-login__text-2xl-font-bold">Indexers</h1>
-          <p className="page-downloaders__text-muted-foreground">Manage Torznab indexers for ROM searching</p>
+          <p className="page-downloaders__text-muted-foreground">Manage Torznab and Newznab indexers for ROM searching</p>
         </div>
         <div className="cmp-igdbsearchmodal__flex-gap-2">
           <Button
@@ -227,7 +230,7 @@ export default function IndexersPage() {
           <CardContent className="page-downloaders__text-center-padding-y-12">
             <Database className="page-downloaders__empty-icon" />
             <p className="page-downloaders__font-medium-margin-bottom-1">No indexers configured</p>
-            <p className="page-downloaders__muted-text-spaced">Sync from Prowlarr or add a Torznab indexer manually.</p>
+            <p className="page-downloaders__muted-text-spaced">Sync from Prowlarr or add an indexer manually.</p>
             <Button onClick={openCreate}>
               <Plus className="page-downloaders__height-4-width-4-margin-right-2" />
               Add Indexer
@@ -318,7 +321,28 @@ export default function IndexersPage() {
               />
             </div>
             <div className="app-common__stack-xs">
-              <Label>Torznab URL</Label>
+              <Label>Type</Label>
+              <div className="cmp-igdbsearchmodal__flex-gap-2">
+                <Button
+                  type="button"
+                  variant={form.type === "torznab" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setForm({ ...form, type: "torznab" })}
+                >
+                  Torznab (Torrent)
+                </Button>
+                <Button
+                  type="button"
+                  variant={form.type === "newznab" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setForm({ ...form, type: "newznab" })}
+                >
+                  Newznab (Usenet)
+                </Button>
+              </div>
+            </div>
+            <div className="app-common__stack-xs">
+              <Label>{form.type === "newznab" ? "Newznab URL" : "Torznab URL"}</Label>
               <Input
                 value={form.url}
                 onChange={(e) => setForm({ ...form, url: e.target.value })}

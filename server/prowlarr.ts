@@ -90,19 +90,16 @@ export class ProwlarrClient {
         // and Newznab feed at /<indexerId>/api for usenet
         const indexerUrl = `${baseUrl}/${idx.id}/api`;
 
-        // Determine protocol: torrent -> torznab, usenet -> newznab
-        const protocol = idx.protocol === "usenet" ? "newznab" : "torznab";
+        // Determine type: torrent -> torznab, usenet -> newznab
+        const type = idx.protocol === "usenet" ? "newznab" : "torznab";
 
         return {
           name: idx.name,
+          type: type as "prowlarr" | "torznab" | "newznab",
           url: indexerUrl,
           apiKey: apiKey, // Prowlarr uses the main API key for all indexer feeds by default
-          protocol: protocol as "torznab" | "newznab",
           enabled: idx.enable,
           priority: idx.priority,
-          rssEnabled: true,
-          autoSearchEnabled: true,
-          // We don't sync categories automatically as they differ per indexer
           categories: [],
         };
       });

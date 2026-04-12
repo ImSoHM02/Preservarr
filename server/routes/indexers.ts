@@ -3,6 +3,7 @@ import { authenticateToken } from "../auth.js";
 import { storage } from "../storage.js";
 import { prowlarrClient } from "../prowlarr.js";
 import { torznabClient } from "../torznab.js";
+import { newznabClient } from "../newznab.js";
 import { sendRouteError } from "../errors.js";
 import { routesLogger } from "../logger.js";
 
@@ -39,16 +40,18 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// POST /api/indexers — create a manual Torznab indexer
+// POST /api/indexers — create a Torznab or Newznab indexer
 router.post("/", async (req, res) => {
   try {
-    const { name, url, apiKey, priority, enabled, categories } = req.body;
+    const { name, type, url, apiKey, priority, enabled, categories } = req.body;
     if (!name || !url || !apiKey) {
       return res.status(400).json({ error: "name, url, and apiKey are required" });
     }
+    const validTypes = ["torznab", "newznab"];
+    const indexerType = validTypes.includes(type) ? type : "torznab";
     const indexer = await storage.createIndexer({
       name,
-      type: "torznab",
+      type: indexerType,
       url,
       apiKey,
       priority: priority ?? 50,
@@ -72,9 +75,11 @@ router.patch("/:id", async (req, res) => {
     const indexer = await storage.getIndexer(id);
     if (!indexer) return res.status(404).json({ error: "Indexer not found" });
 
-    const { name, url, apiKey, priority, enabled, categories } = req.body;
+    const { name, type, url, apiKey, priority, enabled, categories } = req.body;
+    const validTypes = ["torznab", "newznab", "prowlarr"];
     const updated = await storage.updateIndexer(id, {
       ...(name !== undefined && { name }),
+      ...(type !== undefined && validTypes.includes(type) && { type }),
       ...(url !== undefined && { url }),
       ...(apiKey !== undefined && { apiKey }),
       ...(priority !== undefined && { priority }),
@@ -126,7 +131,8 @@ router.post("/:id/test", async (req, res) => {
       "Testing indexer connection"
     );
 
-    const result = await torznabClient.testConnection(indexer);
+    const client = indexer.type === "newznab" ? newznabClient : torznabClient;
+    const result = await client.testConnection(indexer);
     if (!result.success) {
       const lowerUrl = indexer.url.toLowerCase();
       const hint =
@@ -178,6 +184,7 @@ router.post("/prowlarr/sync", async (_req, res) => {
       if (existing) {
         await storage.updateIndexer(existing.id, {
           name: remote.name,
+          type: remote.type ?? existing.type,
           enabled: remote.enabled ?? true,
           priority: remote.priority ?? 50,
         });
@@ -185,7 +192,7 @@ router.post("/prowlarr/sync", async (_req, res) => {
       } else {
         await storage.createIndexer({
           name: remote.name,
-          type: "torznab", // Prowlarr proxies everything as Torznab/Newznab
+          type: remote.type ?? "torznab",
           url: remote.url,
           apiKey: remote.apiKey,
           priority: remote.priority ?? 50,

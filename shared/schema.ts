@@ -351,7 +351,7 @@ export const searchHistoryRelations = relations(searchHistory, ({ one }) => ({
 export const indexers = sqliteTable("indexers", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
-  type: text("type", { enum: ["prowlarr", "torznab"] }).notNull(),
+  type: text("type", { enum: ["prowlarr", "torznab", "newznab"] }).notNull(),
   url: text("url").notNull(),
   apiKey: text("api_key").notNull(),
   priority: integer("priority").notNull().default(50),

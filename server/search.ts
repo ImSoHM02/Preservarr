@@ -7,6 +7,7 @@
 
 import { storage, type Indexer, type QualityProfile } from "./storage.js";
 import { torznabClient } from "./torznab.js";
+import { newznabClient } from "./newznab.js";
 import { normalizeTitle } from "../shared/title-utils.js";
 import { expressLogger } from "./logger.js";
 
@@ -236,60 +237,117 @@ export async function searchForGame(options: SearchOptions): Promise<{
     await Promise.allSettled(
       indexers.map(async (indexer: Indexer) => {
         try {
-          let response = await torznabClient.searchGames(indexer, {
-            query,
-            category: categories,
-            limit: 100,
-          });
-
-          // Some indexers use category maps that don't line up with global platform defaults.
-          // If the category-constrained search returns nothing, retry without category constraints.
-          if (response.items.length === 0 && categories.length > 0) {
-            const broadResponse = await torznabClient.searchGames(indexer, {
+          if (indexer.type === "newznab") {
+            // Newznab (Usenet) indexer
+            let results = await newznabClient.search(indexer, {
               query,
+              category: categories,
               limit: 100,
-              skipCategory: true,
             });
-            if (broadResponse.items.length > 0) {
-              searchLog.debug(
-                {
-                  gameId,
-                  query,
-                  indexer: indexer.name,
-                  constrainedCategories: categories,
-                  broadResults: broadResponse.items.length,
-                },
-                "Category-constrained search returned no items; broad search fallback found results",
-              );
+
+            // Broad fallback if category-constrained search returns nothing
+            if (results.length === 0 && categories.length > 0) {
+              const broadResults = await newznabClient.search(indexer, {
+                query,
+                limit: 100,
+              });
+              if (broadResults.length > 0) {
+                searchLog.debug(
+                  {
+                    gameId,
+                    query,
+                    indexer: indexer.name,
+                    constrainedCategories: categories,
+                    broadResults: broadResults.length,
+                  },
+                  "Newznab category-constrained search returned no items; broad fallback found results",
+                );
+              }
+              results = broadResults;
             }
-            response = broadResponse;
-          }
 
-          for (const item of response.items) {
-            const score = scoreResult(
-              {
+            for (const item of results) {
+              const score = scoreResult(
+                {
+                  title: item.title,
+                  seeders: item.grabs,
+                  size: item.size,
+                  category: item.category?.[0],
+                },
+                platform,
+                profile,
+              );
+
+              allItems.push({
                 title: item.title,
-                seeders: item.seeders,
-                size: item.size,
-                category: item.category,
-              },
-              platform,
-              profile,
-            );
-
-            allItems.push({
-              title: item.title,
-              link: item.link,
-              size: item.size ?? 0,
-              seeders: item.seeders ?? 0,
-              leechers: item.leechers ?? 0,
-              category: item.category ?? "",
-              indexerId: indexer.id,
-              indexerName: indexer.name,
-              score,
-              pubDate: item.pubDate,
-              attributes: item.attributes,
+                link: item.link,
+                size: item.size ?? 0,
+                seeders: item.grabs ?? 0,
+                leechers: 0,
+                category: item.category?.[0] ?? "",
+                indexerId: indexer.id,
+                indexerName: indexer.name,
+                score,
+                pubDate: item.publishDate,
+              });
+            }
+          } else {
+            // Torznab (torrent) indexer
+            let response = await torznabClient.searchGames(indexer, {
+              query,
+              category: categories,
+              limit: 100,
             });
+
+            // Some indexers use category maps that don't line up with global platform defaults.
+            // If the category-constrained search returns nothing, retry without category constraints.
+            if (response.items.length === 0 && categories.length > 0) {
+              const broadResponse = await torznabClient.searchGames(indexer, {
+                query,
+                limit: 100,
+                skipCategory: true,
+              });
+              if (broadResponse.items.length > 0) {
+                searchLog.debug(
+                  {
+                    gameId,
+                    query,
+                    indexer: indexer.name,
+                    constrainedCategories: categories,
+                    broadResults: broadResponse.items.length,
+                  },
+                  "Category-constrained search returned no items; broad search fallback found results",
+                );
+              }
+              response = broadResponse;
+            }
+
+            for (const item of response.items) {
+              const score = scoreResult(
+                {
+                  title: item.title,
+                  seeders: item.seeders,
+                  size: item.size,
+                  category: item.category,
+                },
+                platform,
+                profile,
+              );
+
+              allItems.push({
+                title: item.title,
+                link: item.link,
+                size: item.size ?? 0,
+                seeders: item.seeders ?? 0,
+                leechers: item.leechers ?? 0,
+                category: item.category ?? "",
+                indexerId: indexer.id,
+                indexerName: indexer.name,
+                score,
+                pubDate: item.pubDate,
+                attributes: item.attributes,
+              });
+            }
           }
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
