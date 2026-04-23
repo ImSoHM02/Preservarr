@@ -139,15 +139,15 @@ class NewznabClient {
           : [data.rss.channel.item];
 
         for (const item of items) {
-          // Extract Newznab attributes
-          const attrs = item["newznab:attr"] || [];
+          // Extract extended attributes — check both newznab:attr and torznab:attr.
+          // Prowlarr may use either namespace depending on version/config.
+          const rawAttrs = item["newznab:attr"] || item["torznab:attr"] || [];
+          const attrList = Array.isArray(rawAttrs) ? rawAttrs : [rawAttrs];
           const attrMap = new Map<string, string>();
 
-          if (Array.isArray(attrs)) {
-            for (const attr of attrs) {
-              if (attr["@_name"] && attr["@_value"]) {
-                attrMap.set(attr["@_name"], attr["@_value"]);
-              }
+          for (const attr of attrList) {
+            if (attr["@_name"] && attr["@_value"]) {
+              attrMap.set(attr["@_name"], attr["@_value"]);
             }
           }
 

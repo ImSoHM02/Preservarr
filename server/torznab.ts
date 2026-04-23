@@ -333,11 +333,11 @@ export class TorznabClient {
       }
     }
 
-    // Parse Torznab attributes
-    if (item["torznab:attr"]) {
-      const attributes = Array.isArray(item["torznab:attr"])
-        ? item["torznab:attr"]
-        : [item["torznab:attr"]];
+    // Parse extended attributes — check both torznab:attr and newznab:attr namespaces.
+    // Prowlarr uses torznab:attr for torrent feeds and newznab:attr for usenet feeds.
+    const rawAttrs = item["torznab:attr"] || item["newznab:attr"];
+    if (rawAttrs) {
+      const attributes = Array.isArray(rawAttrs) ? rawAttrs : [rawAttrs];
 
       const parsedAttributes: { [key: string]: string } = {};
 
@@ -355,6 +355,12 @@ export class TorznabClient {
               break;
             case "seeders":
               torznabItem.seeders = parseInt(value);
+              break;
+            case "grabs":
+              // Usenet: map grabs (download count) to seeders for unified scoring
+              if (torznabItem.seeders === undefined) {
+                torznabItem.seeders = parseInt(value);
+              }
               break;
             case "peers":
             case "leechers":
